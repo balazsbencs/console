@@ -34,7 +34,7 @@
     "tools/native_wobble_probe.py": "c8a8f06b91cde95730568770a432e74d8294f1485dcdd6a84cad2b2035e05b67",
     "tools/compare_native_wobble.py": "19aeff72f963fc88c7adc94cc390ce167b21c5f5353a07e780ab2deec57d11de",
     "CMakeLists.txt": "39d94ccf4cc82554a6c46d9e262ddc7ba3f02f9b9d3f020298715182175092cc",
-    ".github/workflows/build.yml": "ea25d106483c9dae1fff0bc1360cdb0f22c1893dbf535dd13de3f5cce287648d",
+    ".github/workflows/build.yml": "9e8baf469b0a9436e60273180c67b74185eb81d97445b9b6c686681779d4ae9d",
     "cmake/ClapPackaging.cmake": "d278b175f002b76d1dccee2476eb40c6739e96d094ff4d4eb5457220df6071d0",
     "cmake/ClapInfo.plist.in": "d0bd79b84ee617350a4692cd0c9e36d3b08a0c81fa5633962dd957571d23cf75",
     "build-release/RetroStudyWobble.clap": "d2dd7e94bf3cb8db0f7530bba6536f9c05e342c16bd30af87da93a53486b0817"
