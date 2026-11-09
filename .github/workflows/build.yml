@@ -13,7 +13,7 @@ jobs:
     name: macOS universal CLAP
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Configure universal Release build
         run: >-
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -43,12 +43,12 @@ jobs:
               RetroStudyWobble) bundle_id=local.retro-study.wobble ;;
             esac
             test "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$bundle_id"
-            lipo -verify_arch arm64 x86_64 "$binary"
+            lipo "$binary" -verify_arch arm64 x86_64
             lipo -info "$binary"
             ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/${name}-macOS-universal.zip"
           done
       - name: Upload macOS bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: RetroStudy-macOS-universal
           path: dist/*.zip
@@ -58,7 +58,7 @@ jobs:
     name: Linux Release and host tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
       - name: Build
@@ -68,7 +68,7 @@ jobs:
       - name: Archive Linux CLAP modules
         run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap
       - name: Upload Linux modules
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: RetroStudy-Linux-x86_64
           path: RetroStudy-Linux-x86_64.tar.gz
