@@ -1,0 +1,75 @@
+name: Build CLAP plugins
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS universal CLAP
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure universal Release build
+        run: >-
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Verify and archive CLAP bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for name in RetroStudyDigital RetroStudyWobble; do
+            bundle="build/${name}.clap"
+            plist="${bundle}/Contents/Info.plist"
+            binary="${bundle}/Contents/MacOS/${name}"
+            test -d "$bundle"
+            test -f "$binary"
+            plutil -lint "$plist"
+            test "$(plutil -extract CFBundleExecutable raw -o - "$plist")" = "$name"
+            test "$(plutil -extract CFBundlePackageType raw -o - "$plist")" = BNDL
+            case "$name" in
+              RetroStudyDigital) bundle_id=local.retro-study.digital ;;
+              RetroStudyWobble) bundle_id=local.retro-study.wobble ;;
+            esac
+            test "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$bundle_id"
+            lipo -verify_arch arm64 x86_64 "$binary"
+            lipo -info "$binary"
+            ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/${name}-macOS-universal.zip"
+          done
+      - name: Upload macOS bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: RetroStudy-macOS-universal
+          path: dist/*.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux Release and host tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Archive Linux CLAP modules
+        run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap
+      - name: Upload Linux modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: RetroStudy-Linux-x86_64
+          path: RetroStudy-Linux-x86_64.tar.gz
+          if-no-files-found: error

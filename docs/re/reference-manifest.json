@@ -1,0 +1,36 @@
+{
+  "source": "RC-20 Retro Color.vst/Contents/MacOS/RC-20 Retro Color",
+  "source_sha256": "ba09a41362d37cab7eaf4d8598a2f3f356830ba023cd1f78190d811f4e8b822d",
+  "slices": [
+    {
+      "cpu": 7,
+      "subtype": 3,
+      "offset": 4096,
+      "size": 9361968,
+      "alignment": 12
+    },
+    {
+      "cpu": 16777223,
+      "subtype": 3,
+      "offset": 9367552,
+      "size": 9881968,
+      "alignment": 12
+    }
+  ],
+  "selected_slice": {
+    "cpu": 16777223,
+    "subtype": 3,
+    "offset": 9367552,
+    "size": 9881968,
+    "alignment": 12
+  },
+  "output": "analysis/reference/rc20-1.0.5-x86_64.macho",
+  "output_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "bytes": 9881968,
+  "windows_candidate": {
+    "path": "analysis/windows/commonappdata/XLN Audio/VST64/RC-20 Retro Color.dll",
+    "sha256": "133d20ece98fa925b30ff3423600e93d41e8b7ebc9186469a0cbe13b6797f42d",
+    "bytes": 7382528,
+    "version_evidence": "Installer title and embedded 1.0.5 string; not yet cross-build matched"
+  }
+}

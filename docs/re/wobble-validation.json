@@ -1,0 +1,47 @@
+{
+  "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "native_comparison": {
+    "cases": 46,
+    "samples": 3670016,
+    "max_error": 0.0,
+    "unequal_samples": 0,
+    "scope": "stereo normalized Wobble with synthetic prepare/cached model state; visualization disabled; no macro Flux generator"
+  },
+  "clap_validator": {
+    "success": 32,
+    "skipped": 11,
+    "warning": 1
+  },
+  "ctest": [
+    "clap_host",
+    "dsp_contract",
+    "wobble_host"
+  ],
+  "evidence_ids": {
+    "process": "ev_06d53d14a629997425fcb93050a4044b53a5c9fe2477387252f4f8fda9ec06f3",
+    "prepare": "ev_59a2b914c6084609d8d303c9a7cc387606bf0b2feb307592ce883b2c146da70a",
+    "constructor": "ev_740801cfe42c765e1fb37faf3ba0bc014da9a29f497f1647642e2182bc6c338c",
+    "reset-phase": "ev_da532103d30d4664ab304600768cca5c0a64f1914fa28f5353773362b289cb2a",
+    "reset-smoothing": "ev_d35b260ceda79a6d81a4451aab20dff358518bf5e71dcc810b8e3d24b1832403",
+    "sine": "ev_4784625cf8fc103dca2da3965ac23930a761b594686e68035505d9b9039746dd",
+    "param-change": "ev_1bb734085a81e8874cd0359a82773c0cad0278e26285647efc9a30c75a2a646c"
+  },
+  "sha256": {
+    "src/dsp/wobble.c": "6a3f5d3c4142869ced810e643aaa01d8e540eecbe042bdc563fe827d8b898ea4",
+    "src/dsp/wobble.h": "bb974acea9c45aaab98b64f0cabade5affe6cd8f28d1920c17b2b0c6848613af",
+    "src/clap/wobble_plugin.c": "311a7732ae62c9daa9306e74fec3b71392cd76cf09e18cb14586473fe1a9424b",
+    "tests/wobble_host.c": "28646599328416fdca3f908b9d975afe61e34ddf2dc797f4eb8f6252639b1447",
+    "tools/native_wobble_probe.py": "c8a8f06b91cde95730568770a432e74d8294f1485dcdd6a84cad2b2035e05b67",
+    "tools/compare_native_wobble.py": "19aeff72f963fc88c7adc94cc390ce167b21c5f5353a07e780ab2deec57d11de",
+    "CMakeLists.txt": "39d94ccf4cc82554a6c46d9e262ddc7ba3f02f9b9d3f020298715182175092cc",
+    ".github/workflows/build.yml": "ea25d106483c9dae1fff0bc1360cdb0f22c1893dbf535dd13de3f5cce287648d",
+    "cmake/ClapPackaging.cmake": "d278b175f002b76d1dccee2476eb40c6739e96d094ff4d4eb5457220df6071d0",
+    "cmake/ClapInfo.plist.in": "d0bd79b84ee617350a4692cd0c9e36d3b08a0c81fa5633962dd957571d23cf75",
+    "build-release/RetroStudyWobble.clap": "d2dd7e94bf3cb8db0f7530bba6536f9c05e342c16bd30af87da93a53486b0817"
+  },
+  "limitations": [
+    "Synthetic cached model/prepare state and Linux libm",
+    "Active batch marker; original silent-batch optimization not modeled",
+    "Full original Wobble macro/Flux and lifecycle pending"
+  ]
+}

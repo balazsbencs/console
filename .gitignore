@@ -1,0 +1,12 @@
+/build*/
+/analysis/
+__pycache__/
+*.pyc
+
+# Operator-supplied reference plugins and installer payloads stay local.
+/*.pkg/
+/*.vst/
+/*.exe
+/*.7z
+/XLN Audio RC-20 Retro Color*/
+/Distribution
