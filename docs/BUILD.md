@@ -2,16 +2,18 @@
 
 This milestone implements the **stereo Digital DSP**, including Focus/Cut,
 internal modulation, normalized curves, Amount/Balance/Magnitude mapping and
-seeded Flux,
-in a standalone C11 library and a Linux x86_64 CLAP effect. The complete RC-20
+seeded Flux, in a standalone C11 library and a Linux x86_64 CLAP effect. The complete RC-20
 signal chain is still in development. See [re/STATUS.md](re/STATUS.md) for the
 exact fidelity boundary and remaining work.
 
 Wobble is now a second independent C DSP module and CLAP. Its oscillator,
 variable delay, interpolation, smoothing and enable behavior match the isolated
-native kernel across 46 cases / 3,670,016 samples with zero error. Wobble's
-original Amount/Balance/Flux graph is pending; its CLAP exposes direct kernel
-controls. See [Wobble fidelity notes](re/wobble-implementation.md).
+native kernel across 46 cases / 3,670,016 samples with zero error. Wobble 0.2.0
+adds Amount/Balance/Magnitude, Stereo and two distinct Flux
+paths, verified over another 9,437,184 composite native audio samples. Its
+production seed indices and full original notification timing remain open.
+See [Wobble fidelity notes](re/wobble-implementation.md) and
+[macro controls](re/wobble-macro-integration.md).
 
 The GitHub Actions workflow builds both plugins on Linux and macOS. The macOS
 job builds universal **arm64 + x86_64** bundles, runs host tests, verifies both
@@ -140,9 +142,24 @@ and `Contents/MacOS/RetroStudyDigital` or `RetroStudyWobble`. Copy the entire
 bundle into `~/Library/Audio/Plug-Ins/CLAP/`. CI artifacts are unsigned and
 unnotarized. macOS may require local authorization to load a downloaded bundle.
 
-Wobble's ten controls are Wow Depth, Flutter Depth, Wow Rate, Flutter Rate,
+Wobble's original ten controls are Wow Depth, Flutter Depth, Wow Rate, Flutter Rate,
 Stereo Phase, Mix, LFO Noise, Noise Scale, Enable and Bypass. Its rate controls
 are normalized metadata inputs; physical ranges are .1–4 Hz and 6–20 Hz.
 Stereo Phase is [0,.4], LFO Noise is [-1,1], and other continuous controls are
-[0,1]. LFO Noise is an externally supplied perturbation value; it is not the
-original Flux macro. The defaults make the module audible.
+[0,1]. LFO Noise is an externally supplied perturbation value in direct mode. The
+defaults make the module audible.
+
+Wobble Control Mode **1** enables Amount, Wow / Flutter Balance, Magnitude,
+Flux and Stereo. Amount/Flux/Magnitude and Balance are normalized [0,1].
+Balance 0 selects wow, 1 selects flutter, and .5 gives both full weight.
+Stereo maps 0/1 to the original 0/.4 phase offset. Two integer seed controls
+make Flux repeatable; their defaults 0/1 are study choices because the original
+relation-table seed indices are unknown. Enable keeps Flux advancing through
+the kernel's disable fade; Bypass freezes both. Direct mode pauses Flux.
+Version 1 Wobble states load with new controls at defaults.
+
+To reproduce the settled Wobble macro/native comparison:
+
+```sh
+python3 tools/compare_native_wobble_macro.py --library build-release/libretro_dsp.so
+```

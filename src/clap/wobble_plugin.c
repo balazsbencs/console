@@ -1,5 +1,6 @@
 #include <clap/clap.h>
 #include "wobble.h"
+#include "wobble_macro.h"
 #include <math.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -14,7 +15,8 @@ _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "Audio parameter publication requires 
 _Static_assert(sizeof(float) == 4, "State format requires 32-bit floats");
 
 enum { WOW_DEPTH, FLUTTER_DEPTH, WOW_RATE, FLUTTER_RATE, STEREO_PHASE, MIX,
-       LFO_NOISE, NOISE_SCALE, ENABLE, BYPASS, PARAM_COUNT };
+       LFO_NOISE, NOISE_SCALE, ENABLE, BYPASS, CONTROL_MODE, AMOUNT, BALANCE,
+       MAGNITUDE, FLUX, STEREO, WOW_SEED, FLUTTER_SEED, PARAM_COUNT };
 typedef struct { const char *name; float low, high, initial; } parameter;
 static const parameter parameters[PARAM_COUNT] = {
     {"Wow Depth", 0, 1, 0.5f}, {"Flutter Depth", 0, 1, 0.5f},
@@ -22,14 +24,18 @@ static const parameter parameters[PARAM_COUNT] = {
     {"Stereo Phase", 0, 0.4f, 0}, {"Mix", 0, 1, 1},
     {"LFO Noise", -1, 1, 0}, {"Noise Scale", 0, 1, 0},
     {"Enable", 0, 1, 1}, {"Bypass", 0, 1, 0},
+    {"Control Mode", 0, 1, 0}, {"Amount", 0, 1, 0},
+    {"Wow / Flutter Balance", 0, 1, 0.5f}, {"Magnitude", 0, 1, 1},
+    {"Flux", 0, 1, 0}, {"Stereo", 0, 1, 0},
+    {"Wow Flux Seed", 0, 65535, 0}, {"Flutter Flux Seed", 0, 65535, 1},
 };
 static const char *const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
     CLAP_PLUGIN_FEATURE_CHORUS, CLAP_PLUGIN_FEATURE_STEREO, NULL};
 static const clap_plugin_descriptor_t descriptor = {
     .clap_version = CLAP_VERSION_INIT, .id = "local.retro-study.wobble",
     .name = "Retro Study Wobble", .vendor = "Retro Study", .url = "",
-    .manual_url = "", .support_url = "", .version = "0.1.0",
-    .description = "Recovered Wobble kernel with direct controls. Original macro and Flux mapping pending.",
+    .manual_url = "", .support_url = "", .version = "0.2.0",
+    .description = "Recovered Wobble kernel with Amount/Balance/Magnitude and two Flux paths. Explicit study seeds; original model timing pending.",
     .features = features,
 };
 typedef struct {
@@ -39,6 +45,9 @@ typedef struct {
     atomic_uint values[PARAM_COUNT];
     float applied[PARAM_COUNT];
     retro_wobble *dsp;
+    rs_wobble_macro macro;
+    float sample_rate;
+    uint32_t macro_remaining;
     bool active, processing;
     uint32_t max_frames;
 } instance;
@@ -49,7 +58,8 @@ static float bits_float(unsigned bits) { float value; memcpy(&value, &bits, 4); 
 static float value_at(const instance *s, unsigned index) {
     return bits_float(atomic_load_explicit(&s->values[index], memory_order_relaxed));
 }
-static bool stepped(unsigned i) { return i == BYPASS || i == ENABLE; }
+static bool stepped(unsigned i) { return i == BYPASS || i == ENABLE || i == CONTROL_MODE ||
+    i == STEREO || i == WOW_SEED || i == FLUTTER_SEED; }
 static bool valid_value(unsigned i, double value) {
     return i < PARAM_COUNT && isfinite(value) && value >= parameters[i].low && value <= parameters[i].high
         && (!stepped(i) || value == floor(value));
@@ -60,13 +70,22 @@ static void apply_dsp_values(instance *s) {
     retro_wobble_params p = {.wow_depth = v[WOW_DEPTH], .flutter_depth = v[FLUTTER_DEPTH],
         .wow_rate = v[WOW_RATE], .flutter_rate = v[FLUTTER_RATE], .stereo_phase = v[STEREO_PHASE],
         .mix = v[MIX], .lfo_noise = v[LFO_NOISE], .noise_scale = v[NOISE_SCALE], .enable = v[ENABLE]};
+    if (v[CONTROL_MODE] >= 0.5f)
+        rs_wobble_macro_apply(&s->macro, v[MAGNITUDE], v[FLUX], v[AMOUNT],
+                              v[BALANCE], v[STEREO], &p);
     (void)retro_wobble_set(s->dsp, &p);
+}
+static void reset_macro(instance *s) {
+    rs_wobble_macro_reset(&s->macro, (int32_t)s->applied[WOW_SEED], (int32_t)s->applied[FLUTTER_SEED]);
+    s->macro_remaining = 0;
 }
 static void apply_values(instance *s) {
     float v[PARAM_COUNT];
     for (unsigned i = 0; i < PARAM_COUNT; ++i) v[i] = value_at(s, i);
     if (!memcmp(v, s->applied, sizeof(v))) return;
+    bool seed_changed = v[WOW_SEED] != s->applied[WOW_SEED] || v[FLUTTER_SEED] != s->applied[FLUTTER_SEED];
     memcpy(s->applied, v, sizeof(v));
+    if (seed_changed) reset_macro(s);
     apply_dsp_values(s);
 }
 static bool CLAP_ABI plugin_init(const clap_plugin_t *plugin) {
@@ -81,8 +100,9 @@ static bool CLAP_ABI activate(const clap_plugin_t *plugin, double rate, uint32_t
     instance *s = self(plugin);
     if (s->active || !isfinite(rate) || rate < 1000 || rate > 1536000 ||
         min_frames < 1 || min_frames > max_frames || max_frames > INT32_MAX) return false;
-    apply_values(s); apply_dsp_values(s);
+    apply_values(s); reset_macro(s); apply_dsp_values(s);
     if (!retro_wobble_prepare(s->dsp, (float)rate)) return false;
+    s->sample_rate = (float)rate;
     s->active = true; s->max_frames = max_frames;
     return true;
 }
@@ -94,7 +114,7 @@ static bool CLAP_ABI start(const clap_plugin_t *plugin) {
 }
 static void CLAP_ABI stop(const clap_plugin_t *plugin) { self(plugin)->processing = false; }
 static void CLAP_ABI reset(const clap_plugin_t *plugin) {
-    instance *s = self(plugin); apply_values(s); apply_dsp_values(s); retro_wobble_reset(s->dsp);
+    instance *s = self(plugin); apply_values(s); reset_macro(s); apply_dsp_values(s); retro_wobble_reset(s->dsp);
 }
 static void accept_event(instance *s, const clap_event_header_t *header) {
     if (!header || header->space_id != CLAP_CORE_EVENT_SPACE_ID || header->type != CLAP_EVENT_PARAM_VALUE ||
@@ -113,8 +133,22 @@ static void process_range(instance *s, const clap_process_t *p, uint32_t first, 
             if (in[c] != out[c]) memmove(out[c] + first, in[c] + first, (last - first) * sizeof(float));
         return;
     }
-    retro_wobble_process(s->dsp, in[0] + first, in[1] + first,
-                         out[0] + first, out[1] + first, last - first);
+    bool macro = s->applied[CONTROL_MODE] >= 0.5f;
+    while (first < last) {
+        uint32_t count = last - first;
+        if (macro) {
+            if (!s->macro_remaining) {
+                rs_wobble_macro_tick(&s->macro, s->sample_rate,
+                    s->applied[MAGNITUDE], s->applied[FLUX], s->applied[AMOUNT]);
+                apply_dsp_values(s); s->macro_remaining = 64;
+            }
+            if (count > s->macro_remaining) count = s->macro_remaining;
+        }
+        retro_wobble_process(s->dsp, in[0] + first, in[1] + first,
+                             out[0] + first, out[1] + first, count);
+        if (macro) s->macro_remaining -= count;
+        first += count;
+    }
 }
 static clap_process_status CLAP_ABI process(const clap_plugin_t *plugin, const clap_process_t *p) {
     instance *s = self(plugin);
@@ -208,7 +242,7 @@ static uint32_t decode32(const unsigned char *in) {
 enum { STATE_SIZE = 12 + PARAM_COUNT * 8 };
 static bool CLAP_ABI save_state(const clap_plugin_t *p, const clap_ostream_t *stream) {
     unsigned char data[STATE_SIZE]; memcpy(data, "RSWB", 4);
-    encode32(data + 4, 1); encode32(data + 8, PARAM_COUNT);
+    encode32(data + 4, 2); encode32(data + 8, PARAM_COUNT);
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         encode32(data + 12 + i * 8, 2000 + i);
         encode32(data + 16 + i * 8, float_bits(value_at(self(p), i)));
@@ -229,7 +263,7 @@ static bool CLAP_ABI load_state(const clap_plugin_t *p, const clap_istream_t *st
         offset += (size_t)n;
     }
     uint32_t version = decode32(data + 4), count = decode32(data + 8);
-    if (memcmp(data, "RSWB", 4) || !(version == 1 && count == PARAM_COUNT)) return false;
+    if (memcmp(data, "RSWB", 4) || !((version == 1 && count == 10) || (version == 2 && count == PARAM_COUNT))) return false;
     size_t size = 12 + count * 8;
     while (offset < size) {
         int64_t n = stream->read(stream, data + offset, size - offset);
@@ -277,7 +311,7 @@ static const clap_plugin_t *CLAP_ABI factory_create(const clap_plugin_factory_t 
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         atomic_init(&s->values[i], float_bits(parameters[i].initial)); s->applied[i] = parameters[i].initial;
     }
-    apply_dsp_values(s);
+    reset_macro(s); apply_dsp_values(s);
     s->plugin = (clap_plugin_t){.desc = &descriptor, .plugin_data = s, .init = plugin_init,
         .destroy = destroy, .activate = activate, .deactivate = deactivate, .start_processing = start,
         .stop_processing = stop, .reset = reset, .process = process, .get_extension = extension, .on_main_thread = on_main};

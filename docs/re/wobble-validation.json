@@ -8,9 +8,8 @@
     "scope": "stereo normalized Wobble with synthetic prepare/cached model state; visualization disabled; no macro Flux generator"
   },
   "clap_validator": {
-    "success": 32,
-    "skipped": 11,
-    "warning": 1
+    "success": 33,
+    "skipped": 11
   },
   "ctest": [
     "clap_host",
@@ -29,19 +28,45 @@
   "sha256": {
     "src/dsp/wobble.c": "6a3f5d3c4142869ced810e643aaa01d8e540eecbe042bdc563fe827d8b898ea4",
     "src/dsp/wobble.h": "bb974acea9c45aaab98b64f0cabade5affe6cd8f28d1920c17b2b0c6848613af",
-    "src/clap/wobble_plugin.c": "311a7732ae62c9daa9306e74fec3b71392cd76cf09e18cb14586473fe1a9424b",
-    "tests/wobble_host.c": "28646599328416fdca3f908b9d975afe61e34ddf2dc797f4eb8f6252639b1447",
+    "src/clap/wobble_plugin.c": "fa8f1ca1132d86d23f185b38b12a7c7858f8186c3c2cb5f37b623057e0c98688",
+    "tests/wobble_host.c": "2c1875043dc50e6c50c60f03f3543c2c042bb7140ace39e9185704c46a0017c8",
     "tools/native_wobble_probe.py": "c8a8f06b91cde95730568770a432e74d8294f1485dcdd6a84cad2b2035e05b67",
     "tools/compare_native_wobble.py": "19aeff72f963fc88c7adc94cc390ce167b21c5f5353a07e780ab2deec57d11de",
-    "CMakeLists.txt": "39d94ccf4cc82554a6c46d9e262ddc7ba3f02f9b9d3f020298715182175092cc",
+    "CMakeLists.txt": "a2e0fd6b81c6b992841366f858736548b331bf4bdce262ab20684c4d63ec441a",
     ".github/workflows/build.yml": "ddb9529c9f4aff720f476744b6d5cf3e83bdff192a72913d4f8c3b09ca005aec",
     "cmake/ClapPackaging.cmake": "d278b175f002b76d1dccee2476eb40c6739e96d094ff4d4eb5457220df6071d0",
     "cmake/ClapInfo.plist.in": "d0bd79b84ee617350a4692cd0c9e36d3b08a0c81fa5633962dd957571d23cf75",
-    "build-release/RetroStudyWobble.clap": "d2dd7e94bf3cb8db0f7530bba6536f9c05e342c16bd30af87da93a53486b0817"
+    "build-release/RetroStudyWobble.clap": "7f1b023206f9819a70b3ad9ca821563a3cb0c007112ae77e847bd0d14891dee1",
+    "src/dsp/wobble_macro.h": "48003d51ab30cc03e348200795e5e3163cd7a5d6383ad253c0252468947cf914",
+    "src/dsp/wobble_macro.c": "6dec4f66d79df545ce68036151019ea36646bffad7f9feaef75d0387ce03b1f5",
+    "tools/compare_native_wobble_macro.py": "020c1a452442801b97ec19c652c81709e87b4db602f0b031a54f3d349b5b3aca"
   },
   "limitations": [
     "Synthetic cached model/prepare state and Linux libm",
     "Active batch marker; original silent-batch optimization not modeled",
-    "Full original Wobble macro/Flux and lifecycle pending"
-  ]
+    "Production serialized seed indices and original notification/startup timing unresolved"
+  ],
+  "milestone": "Wobble 0.2.0: direct kernel plus settled Amount/Balance/Magnitude/Stereo/two-path Flux with explicit seeds",
+  "macro_comparison": {
+    "scope": "synthetic settled Wobble macro relations + original Drive + normalized stereo cWobblerBlock",
+    "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+    "counts": {
+      "scenarios": 54,
+      "ticks": 73728,
+      "noise_outputs": 147456,
+      "noise_state_bytes": 5898240,
+      "targets": 368640,
+      "audio_samples": 9437184
+    },
+    "max_control_error": 0.0,
+    "max_audio_error": 0.0,
+    "bit_exact_noise_state": true,
+    "limitations": [
+      "Explicit synthetic seeds; production serialized seed indices unresolved",
+      "Notifications and inputs manually settled once per 64-frame tick",
+      "No complete original ModelStore scheduler, host or resource-script execution",
+      "Synthetic prepare/model state and system libm bindings; visualization disabled"
+    ],
+    "clang_also_passed": true
+  }
 }

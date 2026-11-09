@@ -1,6 +1,6 @@
 # RC-20 reconstruction status
 
-## Digital 0.3.0 and Wobble 0.1.0
+## Digital 0.3.0 and Wobble 0.2.0
 
 The C11 Digital engine and Linux CLAP now implement the recovered `cBitColor`
 stereo path with both Focus and Cut modes, native decreasing Fit3 curves,
@@ -71,8 +71,11 @@ including disabled Digital intervals while the model noise generators advance.
 Wobble is now a second independent C/CLAP module, matching 46 native cases /
 3,670,016 audio samples with zero error. It includes wow/flutter oscillators,
 variable delay and interpolation, smoothing, stereo phase and enable fades.
-Its direct external noise input is supported; the original Wobble macro/Flux
-graph remains pending. See [Wobble implementation](wobble-implementation.md) and
+Amount/Balance/Magnitude, Stereo and the two Flux paths now compose with that
+kernel, matching 54 native scenarios / 9,437,184 samples with zero error, using
+explicit seeds and settled notifications. Production seed indices and full
+original model timing remain open. See [Wobble implementation](wobble-implementation.md),
+[macro integration](wobble-macro-integration.md) and
 [wobble-validation.json](wobble-validation.json).
 
 GitHub Actions builds both Linux modules and universal arm64/x86_64 macOS
@@ -90,7 +93,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | User-facing effect | Actual block(s) | Implementation status |
 | --- | --- | --- |
 | Noise | cNoiseFX + cSimpleComp, pre/post routing | Graph recovered; DSP pending |
-| Wobble | cWobbler | Stereo kernel implemented/native-tested; macro/Flux graph pending |
+| Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Chain configuration recovered; DSP pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
 | Space | cResoX | Graph recovered; DSP pending |
@@ -159,7 +162,7 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Integrate Wobble macro/Flux paths and port Magnetic; then the
+3. Port Magnetic; then the
    distortion chain, cResoX Space and Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.

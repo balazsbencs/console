@@ -1,5 +1,6 @@
 #include <clap/clap.h>
 #include "wobble.h"
+#include "wobble_macro.h"
 #include <assert.h>
 #include <dlfcn.h>
 #include <math.h>
@@ -9,9 +10,9 @@
 #include <xmmintrin.h>
 #endif
 
-enum { PARAM_COUNT = 10, FRAMES = 4096, MAX_BLOCK = 512 };
-static const float defaults[PARAM_COUNT] = {.5f, .5f, .2f, .294f, 0, 1, 0, 0, 1, 0};
-static const float settings[PARAM_COUNT] = {.83f, .61f, .37f, .79f, .27f, .72f, -.31f, .48f, 1, 0};
+enum { PARAM_COUNT = 18, FRAMES = 4096, MAX_BLOCK = 512 };
+static const float defaults[PARAM_COUNT] = {.5f, .5f, .2f, .294f, 0, 1, 0, 0, 1, 0, 0, 0, .5f, 1, 0, 0, 0, 1};
+static const float settings[PARAM_COUNT] = {.83f, .61f, .37f, .79f, .27f, .72f, -.31f, .48f, 1, 0, 0, .7f, .3f, .6f, .8f, 1, 123, 456};
 static const void *CLAP_ABI host_extension(const clap_host_t *host, const char *id) {
     (void)host; (void)id; return NULL;
 }
@@ -20,7 +21,7 @@ static const clap_host_t host = {
     .clap_version = CLAP_VERSION_INIT, .name = "Wobble ABI test", .vendor = "Local", .url = "", .version = "1",
     .get_extension = host_extension, .request_restart = request, .request_process = request, .request_callback = request,
 };
-typedef struct { clap_event_param_value_t events[16]; unsigned count; } events;
+typedef struct { clap_event_param_value_t events[32]; unsigned count; } events;
 static uint32_t CLAP_ABI event_count(const clap_input_events_t *in) { return ((events *)in->ctx)->count; }
 static const clap_event_header_t *CLAP_ABI event_get(const clap_input_events_t *in, uint32_t i) {
     const events *e = in->ctx; return i < e->count ? &e->events[i].header : NULL;
@@ -73,6 +74,13 @@ static void check_state(const clap_plugin_t *p) {
     set_values(p, defaults); m.cursor = 0; m.data[m.size - 8] ^= 1;
     assert(!state->load(p, &in)); check_values(p, defaults);
     m.data[m.size - 8] ^= 1; m.cursor = 0;
+    assert(state->load(p, &in)); check_values(p, settings);
+    /* Old states have ten controls. New controls reset to their defaults. */
+    m.data[4] = 1; m.data[8] = 10; m.size = 12 + 10 * 8; m.cursor = 0;
+    assert(state->load(p, &in));
+    float migrated[PARAM_COUNT]; memcpy(migrated, defaults, sizeof(migrated));
+    memcpy(migrated, settings, 10 * sizeof(float)); check_values(p, migrated);
+    m.data[4] = 2; m.data[8] = PARAM_COUNT; m.size = 12 + PARAM_COUNT * 8; m.cursor = 0;
     assert(state->load(p, &in)); check_values(p, settings);
 }
 static void core_range(retro_wobble *core, const float *values, float input[2][FRAMES],
@@ -154,6 +162,86 @@ static void check_render(const clap_plugin_t *p, float rate) {
         p->stop_processing(p); p->deactivate(p);
     }
 }
+
+/* The reference composition advances one native-sized batch at a time; the
+   host uses unrelated partitions. Disable keeps Flux running; bypass pauses it. */
+static void check_macro_render(const clap_plugin_t *plugin) {
+    enum { N = 8192 };
+    float input[2][N], output[2][N], expected[2][N], previous[2][N];
+    float initial[PARAM_COUNT]; memcpy(initial, settings, sizeof(initial));
+    initial[10] = 1;
+    for (unsigned i = 0; i < N; ++i) {
+        input[0][i] = .7f * (float)sin(i * .071);
+        input[1][i] = .4f * (float)cos(i * .093);
+    }
+    const unsigned times[] = {256, 1152, 1536, 1792, 2048, 4096, 4096, 6144};
+    const unsigned indices[] = {8, 8, 9, 9, 11, 16, 17, 15};
+    const float changes[] = {0, 1, 1, 0, .91f, 789, 1011, 0};
+    for (unsigned pass = 0; pass < 2; ++pass) {
+        set_values(plugin, initial);
+        assert(plugin->activate(plugin, 48000, 1, MAX_BLOCK));
+        assert(plugin->start_processing(plugin));
+        float *warm_in[] = {input[0], input[1]}, *warm_out[] = {output[0], output[1]};
+        clap_audio_buffer_t warm_input = {.data32 = warm_in, .channel_count = 2};
+        clap_audio_buffer_t warm_output = {.data32 = warm_out, .channel_count = 2};
+        clap_process_t warmup = {.frames_count = MAX_BLOCK, .audio_inputs = &warm_input,
+            .audio_outputs = &warm_output, .audio_inputs_count = 1, .audio_outputs_count = 1};
+        assert(plugin->process(plugin, &warmup) != CLAP_PROCESS_ERROR);
+        plugin->reset(plugin);
+        retro_wobble *core = retro_wobble_create(); assert(core);
+        rs_wobble_macro macro = {0}; rs_wobble_macro_reset(&macro, 123, 456);
+        retro_wobble_params p = core_params(initial);
+        rs_wobble_macro_apply(&macro, .6f, .8f, .7f, .3f, 1, &p);
+        assert(retro_wobble_set(core, &p) && retro_wobble_prepare(core, 48000));
+        for (unsigned offset = 0; offset < N; offset += 64) {
+            if (offset >= 1536 && offset < 1792) {
+                for (unsigned c = 0; c < 2; ++c)
+                    memcpy(expected[c] + offset, input[c] + offset, 64 * sizeof(float));
+                continue;
+            }
+            if (offset == 4096) rs_wobble_macro_reset(&macro, 789, 1011);
+            float amount = offset < 2048 ? .7f : .91f;
+            float stereo = offset < 6144 ? 1 : 0;
+            p.enable = offset >= 256 && offset < 1152 ? 0 : 1;
+            rs_wobble_macro_tick(&macro, 48000, .6f, .8f, amount);
+            rs_wobble_macro_apply(&macro, .6f, .8f, amount, .3f, stereo, &p);
+            assert(retro_wobble_set(core, &p));
+            retro_wobble_process(core, input[0] + offset, input[1] + offset,
+                                 expected[0] + offset, expected[1] + offset, 64);
+        }
+        const unsigned lengths[] = {1, 7, 63, 65, 127, 511};
+        unsigned offset = 0, block = 0, change = 0;
+        while (offset < N) {
+            const clap_plugin_params_t *params = plugin->get_extension(plugin, CLAP_EXT_PARAMS);
+            events e = {0};
+            while (change < 8 && times[change] == offset) {
+                e.events[e.count++] = make_event(indices[change], changes[change], 0); ++change;
+            }
+            if (pass && e.count == 2) {
+                clap_event_param_value_t swap = e.events[0]; e.events[0] = e.events[1]; e.events[1] = swap;
+            }
+            if (e.count) {
+                clap_input_events_t in = {.ctx = &e, .size = event_count, .get = event_get};
+                params->flush(plugin, &in, NULL);
+            }
+            unsigned size = pass ? 64 : lengths[block++ % 6];
+            unsigned boundary = change < 8 ? times[change] : N;
+            if (size > boundary - offset) size = boundary - offset;
+            float *ins[] = {input[0] + offset, input[1] + offset};
+            float *outs[] = {output[0] + offset, output[1] + offset};
+            clap_audio_buffer_t audio_in = {.data32 = ins, .channel_count = 2};
+            clap_audio_buffer_t audio_out = {.data32 = outs, .channel_count = 2};
+            clap_process_t process = {.frames_count = size, .audio_inputs = &audio_in, .audio_outputs = &audio_out,
+                .audio_inputs_count = 1, .audio_outputs_count = 1};
+            assert(plugin->process(plugin, &process) != CLAP_PROCESS_ERROR); offset += size;
+        }
+        assert(memcmp(output, expected, sizeof(output)) == 0);
+        if (pass) assert(memcmp(output, previous, sizeof(output)) == 0);
+        else memcpy(previous, output, sizeof(output));
+        retro_wobble_destroy(core); plugin->stop_processing(plugin); plugin->deactivate(plugin);
+    }
+}
+
 int main(int argc, char **argv) {
     assert(argc == 2);
     void *library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
@@ -191,6 +279,7 @@ int main(int argc, char **argv) {
     assert(!p->activate(p, 1536001, 1, MAX_BLOCK));
     const float rates[] = {48000, 96000, 1000, 384000, 44100};
     for (unsigned i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i) check_render(p, rates[i]);
+    check_macro_render(p);
     p->destroy(p); entry->deinit(); assert(dlclose(library) == 0);
     puts("Wobble CLAP ABI, state, reset, in-place partitions and sample-offset automation passed");
     return 0;

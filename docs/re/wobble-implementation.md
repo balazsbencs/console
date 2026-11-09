@@ -1,9 +1,11 @@
-# Wobble kernel and CLAP, 0.1.0
+# Wobble kernel and CLAP, 0.2.0
 
 `src/dsp/wobble.c` ports the stereo `cWobblerBlock::processAudio` path from the
 supplied RC-20 1.0.5 x86_64 reference at 0x350c20. It is exposed independently
 as `RetroStudyWobble.clap`, with a host generic parameter editor. The complete
-RC-20 graph and Wobble's macro/Flux generators remain pending.
+RC-20 graph remains pending. Version 0.2.0 adds the recovered settled Wobble
+macro/Flux graph; see [macro integration](wobble-macro-integration.md) for its
+controls, comparisons and remaining seed/timing gaps.
 
 ## Recovered processing
 
@@ -49,9 +51,10 @@ state intact. A caller serializes operations for each instance. Stereo buffers
 may process in place; partial buffers preserve the 64-frame control clock.
 Parameter changes restart the adapter's control interval at the next sample.
 
-The CLAP exposes normalized Wow/Flutter Depth and Rate, Stereo Phase [0,.4],
+The ten direct CLAP controls expose normalized Wow/Flutter Depth and Rate, Stereo Phase [0,.4],
 Mix [0,1], LFO Noise [-1,1], Noise Scale [0,1], Enable and Bypass. IDs are
-2000–2009; RSWB state version 1 stores control values. Defaults deliberately
+2000–2009. RSWB state version 2 stores those plus eight macro controls, and
+loads old version 1 states with new controls at defaults. Defaults deliberately
 enable an audible study effect; they are not an RC-20 factory preset.
 
 Enable follows the kernel's ten-batch disable fade and subsequent dry return.
@@ -84,13 +87,14 @@ libm and do not establish macOS libm or ARM rounding equivalence.
 Host tests cover ABI, short state streams and atomic rejection, nondefault
 controls, sample-offset/grouped automation, repeated activation, full reset
 after warmup, in-place stereo and irregular buffers versus the standalone C
-engine at five sample rates. Release and ASan/UBSan pass. CLAP validation has
-no failures; a denormal performance-ratio warning remains despite the adapter's
-FTZ/DAZ guard and verified restoration of the host's MXCSR.
+engine at five sample rates. Release and ASan/UBSan pass. CLAP 0.2.0 validation passes 33 checks and skips 11 optional-extension checks,
+with no failures or warnings in the recorded run. The adapter guards FTZ/DAZ
+and host tests verify restoration of the host's MXCSR.
 
-The native probe always marks input batches active. Original silent-batch
-optimization, complete ModelStore notification timing, Wobble Amount/Balance/
-Magnitude and its two Flux routes are outside this comparison. Resource
+The native kernel probe always marks input batches active. Original silent-batch
+optimization and complete ModelStore notification timing remain outside these
+comparisons. Wobble Amount/Balance/Magnitude and both Flux routes now have a
+separate [composite comparison](wobble-macro-comparison.md). Resource
 mapping details and those remaining questions are in
 [wobble-control-findings.md](wobble-control-findings.md).
 

@@ -36,14 +36,14 @@
     "src/dsp/noisegen.h": "b58f483a5e2c282a18d77c5eaa829f95e16bdc012d79573765861bff7cad5b85",
     "src/dsp/relations.c": "23527b89691750c842750433cf4151a2491105139529fe1c5516d76a6eca6f42",
     "src/dsp/relations.h": "99651d6584e373296fdf0fb71416bf9e83c92b18c6e655357d5a1f9439ac5744",
-    "CMakeLists.txt": "39d94ccf4cc82554a6c46d9e262ddc7ba3f02f9b9d3f020298715182175092cc",
+    "CMakeLists.txt": "a2e0fd6b81c6b992841366f858736548b331bf4bdce262ab20684c4d63ec441a",
     "tests/clap_host.c": "4c0e6d2e1500063d33fce8ae9f928372bacc0dfeec5186fa35470571c3ec5920",
     "tests/dsp_test.c": "4e98ce89173994e7f0df4fd610511d0c0e1d9948319cea809666ce8e216eac52",
     "tests/compare_native.py": "db9b8a41edad602d855685a354db5d2a4e9936962ec54c12b19ba2fdf9f49e8b",
     "tools/compare_native_flux.py": "f668c1d4617436bcea070e7747db608f2cb05216f61188265699582f9e71894c",
     "tools/compare_native_fromto.py": "4bab6e77e4a2efc750ec0ede803c957153b6b0c533b0302647e581095a0357cf",
     "build-release/RetroStudyDigital.clap": "56f8125f4c80fd42ca9f69d1fa664973781a35e6112a18774f75f5ef875acecd",
-    "build-release/libretro_dsp.so": "022610b0564eedd01405dcfdf329fc23418d501b519458297b9554994375514e"
+    "build-release/libretro_dsp.so": "82a687f3104cb3ebf0369c648007851175bba3f9d0908f88bd513e336564e99f"
   },
   "curves": {
     "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",

@@ -1,5 +1,12 @@
 # Wobble control and initialization evidence
 
+This resource/static ledger preceded implementation. The stereo kernel and
+settled macro/Flux graph are now implemented and native-tested; see
+[wobble-implementation.md](wobble-implementation.md) and
+[wobble-macro-integration.md](wobble-macro-integration.md). Remaining questions
+below record the original investigation boundary; production seed indices and
+full model lifecycle/timing are still unresolved.
+
 Scope: read-only extracted-resource inspection, direct symbol/constant reads and
 raw disassembly of the hash-pinned RC-20 1.0.5 x86_64 reference. No new REA
 session, original resource-script execution or complete plugin execution.

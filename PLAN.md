@@ -24,7 +24,9 @@ initial plan. Implementation has now started; see progress below.
   migration and grouped same-time macro events, plus Flux buffer partitioning,
   repeatable reset and disabled-kernel modulation continuity.
 - Wobble now has a C core and independent CLAP, matching 46 isolated native
-  cases / 3,670,016 samples. Its original macro/Flux graph is pending.
+  cases / 3,670,016 samples. Wobble 0.2.0 adds the settled macro/Flux graph,
+  matching another 9,437,184 composite samples with explicit seeds. Original
+  model timing and production seed indices remain open.
 - GitHub Actions builds/tests Linux modules and universal macOS CLAP bundles.
 - Noise, Distortion, Space, Magnetic, global routing and complete-plugin host
   renders remain pending.
