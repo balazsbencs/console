@@ -183,14 +183,20 @@ python3 tools/compare_native_fromto_knob.py --library build-release/libretro_dsp
 python3 tools/compare_native_magnetic_macro.py --library build-release/libretro_dsp.so
 ```
 
-Drive Cores 0.1.0 packages the recovered Tube Pair, Air Pressure and Iron
+Drive Cores 0.2.0 packages the recovered Tube Pair, Air Pressure and Iron
 Transformer numerical cores. Character 0/1/2 selects them, Amount is normalized
 [0,1], and Mix, Enable and Bypass are study adapter controls (IDs 4000–4004).
-This milestone excludes RC-20's outer filters, oversampling, gain staging and
-complete Distortion chain. See [scope and controls](re/drive-cores-implementation.md).
+Processing Mode 0 preserves the original core-only study. Mode 1 adds the
+recovered stereo frequency split, output filter, band gains and smoothed mix
+with controls 4005–4010. State format 1 loads with mode 0; format 2 stores all
+eleven controls. See [Processor mode](re/magic-processor-implementation.md).
+The complete Distortion chain, its gain staging and macro/Flux routing remain
+pending. The inspected Magic path has no internal oversampling stage.
 
 ```sh
 python3 tools/compare_native_tube_pair.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_air_pressure.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_iron_transformer.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_iron_stereo.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_magic.py --library build-release/libretro_dsp.so
 ```

@@ -70,3 +70,9 @@ float rs_iron_transformer_process(rs_iron_transformer *s, float input, unsigned 
     float post = filter(v + 28, v[5], c);
     return filter(v + 14, filter(v + 7, post * difference, c), c);
 }
+
+void rs_iron_transformer_process_stereo(rs_iron_transformer *s, float *left, float *right) {
+    if (!s || !left || !right) return;
+    *left = rs_iron_transformer_process(s, *left, 0);
+    *right = rs_iron_transformer_process(s, *right, 1);
+}

@@ -74,3 +74,29 @@ Reports remain local in `analysis/re/native-iron-transformer-comparison.json`
 and `analysis/re/native-iron-transformer-comparison-clang.json`. These tests do
 not establish agreement with Apple's libm, original startup histories, outer
 filtering or oversampling.
+
+## Original stereo kernel verification
+
+REA `ShapeStereo<2>` at `0xb14d0`, evidence
+`ev_3a08e880af172052197ecb8c4de55425f28f0f9e67ce5aaff022feba58ba287f`,
+was checked against the raw scalar SSE instructions. The pseudocode prints
+some sums in a different textual order, but the machine code preserves the
+same association as the isolated per-channel C core: first sum the feed and
+previous-input terms, then add the current-output-history term. No separate
+numerical filter implementation is necessary.
+
+`rs_iron_transformer_process_stereo` processes one left/right pair using the
+existing per-channel function. The original stereo outer splitter contains
+explicit `+0.0001` and `-0.0001` operations even with unity coefficients. The
+new `tools/compare_native_iron_stereo.py` clears both middle-band histories
+before each sample and applies this exact float rounding to the C inputs. It
+reads both original final inner filter histories before the DC/mix stage and
+compares all 42 state floats after every pair.
+
+GCC and Clang 19 each passed 42 stereo scenarios, 688,128 audio samples, with
+zero sample error and bit-exact inner state. The same rate/amount grid, dynamic
+setup change, reset, mixed sine/random inputs and silence tail described above
+are covered. Reports:
+`analysis/re/native-iron-stereo-comparison.json` and
+`analysis/re/native-iron-stereo-comparison-clang.json`. The existing mono API
+and arithmetic remain unchanged.
