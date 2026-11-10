@@ -183,14 +183,18 @@ python3 tools/compare_native_fromto_knob.py --library build-release/libretro_dsp
 python3 tools/compare_native_magnetic_macro.py --library build-release/libretro_dsp.so
 ```
 
-Drive Cores 0.2.0 packages the recovered Tube Pair, Air Pressure and Iron
+Drive Cores 0.3.0 packages the recovered Tube Pair, Air Pressure and Iron
 Transformer numerical cores. Character 0/1/2 selects them, Amount is normalized
 [0,1], and Mix, Enable and Bypass are study adapter controls (IDs 4000–4004).
 Processing Mode 0 preserves the original core-only study. Mode 1 adds the
 recovered stereo frequency split, output filter, band gains and smoothed mix
-with controls 4005–4010. State format 1 loads with mode 0; format 2 stores all
-eleven controls. See [Processor mode](re/magic-processor-implementation.md).
-The complete Distortion chain, its gain staging and macro/Flux routing remain
+with controls 4005–4010. State formats 1/2 load with their existing mode; format 3 stores all
+fourteen controls. See [Processor mode](re/magic-processor-implementation.md).
+Processing Mode 2 adds the three-character Chain, gain staging and settled
+Magnitude/Flux routing. Controls 4011–4013 are Magnitude, Flux and Flux Seed.
+Seed zero is an explicit study choice. See [Chain mode](re/dist-chain-integration.md)
+for its 64-frame control cadence and unresolved original graph timing.
+The classic Crunch/Heavy/Zap engines and complete original host graph remain
 pending. The inspected Magic path has no internal oversampling stage.
 
 ```sh
@@ -199,4 +203,7 @@ python3 tools/compare_native_air_pressure.py --library build-release/libretro_ds
 python3 tools/compare_native_iron_transformer.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_iron_stereo.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_magic.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_gain.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_knob_gain.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_dist_chain.py --library build-release/libretro_dsp.so
 ```

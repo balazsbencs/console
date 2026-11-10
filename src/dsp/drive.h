@@ -5,6 +5,7 @@ typedef struct retro_drive retro_drive;
 typedef struct {
     float amount, character, mix, enable;
     float processing_mode, low_hz, high_hz, dist_db, pass_db, output_hz;
+    float magnitude, flux, seed;
 } retro_drive_params;
 retro_drive_params retro_drive_defaults(void);
 retro_drive *retro_drive_create(void);

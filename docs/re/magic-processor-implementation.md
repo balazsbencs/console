@@ -111,3 +111,12 @@ changes, reset and irregular C buffer partitions. Both GCC and Clang pass
 252 scenarios / 2,064,384 audio samples with zero error and identical float patterns. The independent Iron stereo check passes
 42 scenarios / 688,128 samples per compiler, with exact numerical state.
 Counts and source hashes are in [drive-cores-validation.json](drive-cores-validation.json).
+
+
+## Chain mode follow-up
+
+Drive Cores 0.3.0 adds a separate [Chain mode](dist-chain-integration.md) with
+three independent processor instances, original bracketing gains and settled
+Flux/Mix routing. The Processor mode documented here retains its direct-control
+behavior. Full original graph transition scheduling and the classic characters
+remain pending.

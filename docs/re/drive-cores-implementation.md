@@ -1,9 +1,10 @@
-# Drive Cores 0.2.0
+# Drive Cores 0.3.0
 
 `RetroStudyDriveCores.clap` packages the three recovered numerical cores used by
 RC-20's `magicDistort` processor: Tube Pair, Air Pressure and Iron Transformer.
 It provides the original direct-core mode plus a recovered stereo Processor
-mode. See [Processor mode](magic-processor-implementation.md) for frequency
+mode, plus a three-character Chain mode with gain staging and seeded Flux.
+See [Chain mode](dist-chain-integration.md) and [Processor mode](magic-processor-implementation.md) for frequency
 splitting, output filtering, gains, smoothed mix and new controls. The complete
 RC-20 Distortion chain is still being reconstructed.
 
@@ -37,7 +38,7 @@ three. Activation and reset clear all core histories and Air Pressure's delay
 rings. This deterministic study reset is compared with freshly zeroed native
 histories, not claimed to reproduce original plugin reset timing.
 
-State format 2 (`RSDC`) stores all eleven controls and loads old format 1
+State format 3 (`RSDC`) stores all fourteen controls and loads old formats 1/2
 with the new controls defaulted. The original format stored five controls in explicit little-endian
 records, with short-read/write support and atomic rejection of malformed state.
 Sample-offset host events are supported. The module uses a host's generic
@@ -86,9 +87,9 @@ Machine-readable reports and source hashes are in
 ## Remaining work
 
 The original core comparisons exclude the outer path, which is now separately
-recovered and tested in Processor mode. Remaining work includes chain pre/post
-gains and EQ, the other `distort` processor family, macro and Flux routing, and
-original ModelStore scheduling. The inspected Magic path has no internal
+recovered and tested in Processor mode. Chain mode now implements the three Magic character gain stages and settled
+Flux/routing formulas. Remaining work includes the other `distort` processor
+family and its EQ, original graph transition timing and ModelStore scheduling. The inspected Magic path has no internal
 oversampling stage; see the [bounded investigation](distortion-oversampling-findings.md).
 Both study modes process at the host sample rate and report zero adapter latency. It is not yet an
 RC-20 character preset or complete Distortion replacement. Original macOS math

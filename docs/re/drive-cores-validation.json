@@ -1,5 +1,5 @@
 {
-  "milestone": "Drive Cores0.2.0: direct numerical cores plus recovered full Magic stereo processor mode",
+  "milestone": "Drive Cores0.3.0: three Magic character chains with native gain smoothing and settled seeded Flux routing",
   "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
   "native_comparison": {
     "gcc": {
@@ -528,11 +528,20 @@
     "iron-setup": "ev_5f04693a5bbe31d485d32d38af88018df4a9ddc7c5d5adf1decc618b4061e2fc",
     "iron-stereo": "ev_3a08e880af172052197ecb8c4de55425f28f0f9e67ce5aaff022feba58ba287f",
     "magic-process": "ev_bdfbd6742e433a3a00528c9fad60c287d0cdd2c81fd4aa0ba1448448749c4f70",
-    "magic-reset": "ev_b428c1fc9a10a45414aff05e0c44910d936f886e64bb8013e00c73985f772c55"
+    "magic-reset": "ev_b428c1fc9a10a45414aff05e0c44910d936f886e64bb8013e00c73985f772c55",
+    "gain-reset": "ev_5888403a09faf9ec0f3bba56d4db496162c0cd371e1bbff8fa9c04b6555963cd",
+    "gain-set": "ev_4ad5c1b891f538a62358847d11ce3897ca8cc11a3b5731d17f5aeec140330c4f",
+    "gain-process": "ev_87690ad83070daee1c862c87535c7e2d8ae6d4d7d84866ac37e2c6977b9b8db5",
+    "gain-helper": "ev_570de1d1e5f98d0fa8d13ff567a4bf00798fd727fbb6b364ae779d35f887fdd4",
+    "chain-update": "ev_396f3a042adae64cd45135f95d5d6f838f20258d6a96fa3a010a1822f399c82b",
+    "chain-scale-param": "ev_818012f9609c63486d575ddcf888314b8abcd7c3d77d20b8e974cc8c252d016d",
+    "batch-gain": "ev_a4f996542d493df335163579dde0cf980dbceafde74220e2381d6c44bce2d82a",
+    "scale-sym": "ev_a8e3d89664ec96593dd6f66839f29bbf5be821e2d782227da9d03cb4e9d8bf9f"
   },
   "clap_validator": {
-    "success": 33,
-    "skipped": 11
+    "success": 32,
+    "skipped": 11,
+    "warning": 1
   },
   "ctest": {
     "gcc_release": "5 passed",
@@ -540,35 +549,45 @@
     "asan_ubsan": "5 passed"
   },
   "sha256": {
-    "src/dsp/drive.c": "a4a6276f23630b1e9cf84d537dfc37c0657fa9b0b0ade369d605f5eca0c17206",
-    "src/dsp/drive.h": "ed57f6ccfad2cb34c9cdea221b092403c2de6fc0d6e93722e68c900a9cf8066a",
+    "src/dsp/drive.c": "cfce3664e1db05484e46ff3d894d8a368d554fc6b89c77122008c70575bfaedd",
+    "src/dsp/drive.h": "4281fe7e7eb2d9748669de1a1e0fb9bf554cf153c9e739887cc5aa428ae2b99d",
     "src/dsp/tube_pair.c": "2423521c9e05622e300c84f3682669eaa473733d3f838e10118f144d6f18395f",
     "src/dsp/tube_pair.h": "e8bd645dcfcd9d3be75d1e821d5922890e300bb0208dabe23603af201d3ebeb9",
     "src/dsp/air_pressure.c": "91520346d547ba01d17036d128f8eb1997ba4edcf2480e9cb8ed01ff227d3bd4",
     "src/dsp/air_pressure.h": "ea3983ccfa968569dabc48c5c4ae7ebe864cac0185371366b2200ba57a066fb5",
     "src/dsp/iron_transformer.c": "59008e7b5495e971d962cf1542d34afe7b4e36b6d7ebaf13d2d0fe51013d6895",
     "src/dsp/iron_transformer.h": "bca24af755644d8cf77f46ed518586ce172518517c0f777c3a9dc34456555690",
-    "src/clap/drive_plugin.c": "fa8f74a29d9f3307e21becf15e63c80303fc9fd2159ae2b5ebc0c34b505feeda",
-    "tests/drive_host.c": "e4615db16d3e35b8162f96e2c79273c20853eff27588df2466686245d02d76b5",
+    "src/clap/drive_plugin.c": "36997baa4244b5d72574ee9f3f7439d178e0ca6d832c36023f82662e7e783dfc",
+    "tests/drive_host.c": "b60283f8c1ffc97d70fbaf76b89931a2283d4df22a507647b54a89fd17b7e84e",
     "tools/compare_native_tube_pair.py": "dee0cda03450b1477d0559fae29defb4d7341eb38c7411566b04927b6f58af6c",
     "tools/compare_native_air_pressure.py": "b8eafab359ecbb351364782084fc3a7d19d0642a8432bfd26f90a5edc990003d",
     "tools/compare_native_iron_transformer.py": "954862e4c99b0e33515e10ba3e908adab6d40b4243bd45af1fa01ed5c1e5213c",
-    "CMakeLists.txt": "597edf8efc07f0ac5e2a599fd0202b72b608dc8489d8f32cce404721cd5569a1",
+    "CMakeLists.txt": "3fcd306a497ef6c988a94eb65d062159f9d65e25e33ab1b2c62ec4e12c22d082",
     ".github/workflows/build.yml": "a07dbcd8dbe38acf694b87a55fe28f0c28c1015dd77eb067c28198fbbf08be9d",
-    "build-release/RetroStudyDriveCores.clap": "47f75941410362a2fb88c53e5b9b647aa1f81a805fef3371a5fa1a6338c0a3e2",
+    "build-release/RetroStudyDriveCores.clap": "cf54f9f913089a4766c4d0428c4e7d5916539dd28f90c00007d8b3aa3886784d",
     "src/dsp/magic.c": "cbfe0832293d5f842ca1603206295ab9260dcbacf63fe879571bb6e8748ef94e",
     "src/dsp/magic.h": "812a406337ad691d51c38bff10cbde37c50f86306dfe28d26068d0d6aa7f7873",
     "tools/native_magic_probe.py": "e83307d28c90dce204a43cfd25e3fd03f3c29b18e31dc23be169af5ab6468c81",
     "tools/compare_native_magic.py": "da87a9004d31dbaf502097a7cd1d52906ea31615196bb7ccb854fec693495491",
-    "tools/compare_native_iron_stereo.py": "266fee68caade3bb27c5317459cada7f703fb07da4090392887bd1d63aacb86b"
+    "tools/compare_native_iron_stereo.py": "266fee68caade3bb27c5317459cada7f703fb07da4090392887bd1d63aacb86b",
+    "src/dsp/dist_chain.c": "2b3b227bb90d070e354fcc12922877aa7e263fc05d5cf6a48de35a37eb6ecc07",
+    "src/dsp/dist_chain.h": "08934a330c3022e3a9105db04a6d0b506030a037092bb3319bb47362616bdd0c",
+    "src/dsp/gain.c": "508733aa32077a9d9147e81ca926524da8801692846fc2b8b0ba7c5f6abffc1c",
+    "src/dsp/gain.h": "08b4645e49aa891e8123947730be5e098a884fddbd4aae9a067a7df764d2620a",
+    "src/dsp/relations.c": "8363dc94374160d89c956bdd501c8985a2bfcf1ecb85775684e3ce2f278beed7",
+    "src/dsp/relations.h": "43b9b1da18baeaa2af213fb477d932b74cf1d73253f61bc5e5fa4f3c96e5ef96",
+    "tools/compare_native_dist_chain.py": "70b92cd40ee72c697e381402374cf82e4a75db2a59b4d51b3f1dd103764ef87c",
+    "tools/compare_native_gain.py": "3b699cf378357bc38b9b9e7e5a9bbc08a290d579bd5c8aebc6c86a463861f9ef",
+    "tools/compare_native_knob_gain.py": "200b117d0030f536f7a666a95a62c60cd598e81146e17e3c597a6a38cfa579ec"
   },
   "limitations": [
-    "Synthetic zero numerical histories and caller-owned Air rings; no original constructor/allocator execution",
-    "Original stereo Process tested with active buffers and silent flags false; silent-batch shortcuts and mono dispatch not ported",
-    "No internal oversampling in inspected Magic path and immediate adapters; outer host rate provenance not traced end-to-end",
-    "Complete Distortion chain gains/mix/Flux and Crunch/Heavy/Zap family pending",
-    "Study mode switching, sample-offset automation and deterministic full reset; original ModelStore timing unverified",
-    "Linux libm for native and C; macOS math rounding/full plugin renders unverified"
+    "Explicit external constant-per64batch routing adapter; original connection-gain transitions and summation scheduler unverified",
+    "Manual settled relation notifications; original ModelStore startup and production seed indices unresolved",
+    "Classic Crunch/Heavy/Zap family and full original plugin host graph pending",
+    "Original constructors/resources/allocators not executed; caller-owned numerical histories and Air rings",
+    "Active-buffer native comparisons; original silence shortcuts and mono dispatch not reproduced in chain",
+    "No internal oversampling in inspected Magic/local chain path; outer host sample-rate provenance not audited end-to-end",
+    "Linux libm for native and C; macOS math rounding/full reference renders unverified"
   ],
   "magic_processor_comparison": {
     "gcc": {
@@ -765,5 +784,319 @@
       "reset": true,
       "arithmetic_order": "Existing mono per-channel process agrees with original stereo kernel"
     }
-  }
+  },
+  "dist_chain_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Settled resource targets + original one-generator Drive + Gain/Magic kernels; explicit external constant-per-batch dry/wet/character routing adapter",
+      "counts": {
+        "scenarios": 108,
+        "ticks": 41472,
+        "audio_samples": 5308416,
+        "noise_state_bytes": 1658880,
+        "target_values": 373248
+      },
+      "max_audio_error": 0,
+      "max_target_error": 0,
+      "noise_state_bit_exact": true,
+      "limitations": [
+        "Explicit seeds; production relation indices unresolved",
+        "No full original graph/scheduler or gain-transition scheduler",
+        "Three engine histories freeze when inactive; whole audio freezes while disabled, Flux advances",
+        "No oversampling, original constructor/startup or plugin host",
+        "Linux libm for reference and C"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Settled resource targets + original one-generator Drive + Gain/Magic kernels; explicit external constant-per-batch dry/wet/character routing adapter",
+      "counts": {
+        "scenarios": 108,
+        "ticks": 41472,
+        "audio_samples": 5308416,
+        "noise_state_bytes": 1658880,
+        "target_values": 373248
+      },
+      "max_audio_error": 0,
+      "max_target_error": 0,
+      "noise_state_bit_exact": true,
+      "limitations": [
+        "Explicit seeds; production relation indices unresolved",
+        "No full original graph/scheduler or gain-transition scheduler",
+        "Three engine histories freeze when inactive; whole audio freezes while disabled, Flux advances",
+        "No oversampling, original constructor/startup or plugin host",
+        "Linux libm for reference and C"
+      ]
+    }
+  },
+  "gain_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Isolated cAEGainPlug numerical reset/set/stereo-or-mono Process64; verified SIMD interpolation constant copied, no constructors",
+      "scenarios": 240,
+      "samples": 3932160,
+      "maximum_absolute_error": 0,
+      "state_bit_exact": true,
+      "sample_rates": [
+        1000,
+        8000,
+        22050,
+        44100,
+        44117,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "initial_gain_pairs": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          -100
+        ],
+        [
+          1,
+          100
+        ],
+        [
+          -1,
+          12
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          22
+        ],
+        [
+          1,
+          -18
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          100,
+          100
+        ],
+        [
+          -100,
+          -100
+        ],
+        [
+          1e-10,
+          0
+        ],
+        [
+          1e-09,
+          0
+        ]
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "reset": true,
+      "dynamic_changes": true,
+      "limitations": [
+        "Silence shortcut disabled",
+        "No full chain or plugin host",
+        "Linux libm for reference and C"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Isolated cAEGainPlug numerical reset/set/stereo-or-mono Process64; verified SIMD interpolation constant copied, no constructors",
+      "scenarios": 240,
+      "samples": 3932160,
+      "maximum_absolute_error": 0,
+      "state_bit_exact": true,
+      "sample_rates": [
+        1000,
+        8000,
+        22050,
+        44100,
+        44117,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "initial_gain_pairs": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          -100
+        ],
+        [
+          1,
+          100
+        ],
+        [
+          -1,
+          12
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          22
+        ],
+        [
+          1,
+          -18
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          100,
+          100
+        ],
+        [
+          -100,
+          -100
+        ],
+        [
+          1e-10,
+          0
+        ],
+        [
+          1e-09,
+          0
+        ]
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "reset": true,
+      "dynamic_changes": true,
+      "limitations": [
+        "Silence shortcut disabled",
+        "No full chain or plugin host",
+        "Linux libm for reference and C"
+      ]
+    }
+  },
+  "knob_gain_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "original cRelationSpecHandler::objectChanged opcode K, synthetic model callbacks",
+      "comparisons": 361137,
+      "max_error": 0.0,
+      "all_float_patterns_equal": true,
+      "result_sha256": "a1394ded0b7e659aed31f0c64837d7222389aa0c938de34cddea21c4320602fb",
+      "distortion_mapping": [
+        {
+          "input": 0,
+          "pre_gain": 0.7079457640647888,
+          "post_gain": 1.4125375747680664,
+          "product": 0.9999999926394025
+        },
+        {
+          "input": 0.25,
+          "pre_gain": 0.8413951396942139,
+          "post_gain": 1.1885021924972534,
+          "product": 0.999999968283106
+        },
+        {
+          "input": 0.5,
+          "pre_gain": 1.0,
+          "post_gain": 1.0,
+          "product": 1.0
+        },
+        {
+          "input": 0.75,
+          "pre_gain": 3.1622776985168457,
+          "post_gain": 0.3162277638912201,
+          "product": 1.000000005405056
+        },
+        {
+          "input": 1,
+          "pre_gain": 10.0,
+          "post_gain": 0.10000000149011612,
+          "product": 1.0000000149011612
+        }
+      ],
+      "limitations": [
+        "Finite input and anchors; curvature strictly between zero and one",
+        "Extrapolation cases use .5 curves to avoid rational poles",
+        "Synthetic callbacks; original production scheduling not executed"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "original cRelationSpecHandler::objectChanged opcode K, synthetic model callbacks",
+      "comparisons": 361137,
+      "max_error": 0.0,
+      "all_float_patterns_equal": true,
+      "result_sha256": "a1394ded0b7e659aed31f0c64837d7222389aa0c938de34cddea21c4320602fb",
+      "distortion_mapping": [
+        {
+          "input": 0,
+          "pre_gain": 0.7079457640647888,
+          "post_gain": 1.4125375747680664,
+          "product": 0.9999999926394025
+        },
+        {
+          "input": 0.25,
+          "pre_gain": 0.8413951396942139,
+          "post_gain": 1.1885021924972534,
+          "product": 0.999999968283106
+        },
+        {
+          "input": 0.5,
+          "pre_gain": 1.0,
+          "post_gain": 1.0,
+          "product": 1.0
+        },
+        {
+          "input": 0.75,
+          "pre_gain": 3.1622776985168457,
+          "post_gain": 0.3162277638912201,
+          "product": 1.000000005405056
+        },
+        {
+          "input": 1,
+          "pre_gain": 10.0,
+          "post_gain": 0.10000000149011612,
+          "product": 1.0000000149011612
+        }
+      ],
+      "limitations": [
+        "Finite input and anchors; curvature strictly between zero and one",
+        "Extrapolation cases use .5 curves to avoid rational poles",
+        "Synthetic callbacks; original production scheduling not executed"
+      ]
+    }
+  },
+  "clap_validator_denormal_followup": [
+    {
+      "code": "success",
+      "details": "The plugin took 1.67x longer to process denormals"
+    }
+  ]
 }

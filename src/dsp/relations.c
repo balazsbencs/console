@@ -1,5 +1,6 @@
 /* Recovered from cRelationSpecHandler::objectChanged, RC-20 1.0.5 0xf0d70. */
 #include "relations.h"
+#include <math.h>
 static float upper(float x, float hi) { return x <= hi ? x : hi; }
 static float clamp(float x, float lo, float hi) { return x < lo ? lo : upper(x, hi); }
 static float curve(float x, float k) {
@@ -32,6 +33,26 @@ float rs_relation_from_to_knob(float input, float low, float middle, float high,
     denominator = denominator - k;
     float y = numerator / denominator;
     return (to - from) * y + from;
+}
+float rs_relation_knob_to_gain(float input, float low_db, float high_db,
+                                float lower_curve, float upper_curve) {
+    int lower = input < 0.5f;
+    float x = lower ? input : input + -0.5f;
+    x = x + x;
+    float k = lower ? 1.0f - lower_curve : upper_curve;
+    float numerator = x * k;
+    float denominator = (k + k + -1.0f) * x;
+    denominator = denominator + 1.0f;
+    denominator = denominator - k;
+    float y = numerator / denominator;
+    float from = lower ? 0.0f : 0.5f;
+    float to = lower ? 0.5f : 1.0f;
+    float z = (to - from) * y + from;
+    float gain_db = lower ? -low_db : high_db;
+    gain_db = gain_db + gain_db;
+    float exponent = (z + -0.5f) * gain_db;
+    exponent = exponent * 0.05f;
+    return powf(10.0f, exponent);
 }
 void rs_relation_triangle(float x, float *left, float *right) {
     float inv = 1.0f - x;

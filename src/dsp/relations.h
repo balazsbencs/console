@@ -9,4 +9,6 @@ float rs_relation_from_to(float input, float from_low, float from_high,
                           float to_low, float to_high, float curvature);
 float rs_relation_from_to_knob(float input, float low, float middle, float high,
                                float lower_curve, float upper_curve);
+float rs_relation_knob_to_gain(float input, float low_db, float high_db,
+                                float lower_curve, float upper_curve);
 #endif
