@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for name in RetroStudyDigital RetroStudyWobble RetroStudyMagnetic; do
+          for name in RetroStudyDigital RetroStudyWobble RetroStudyMagnetic RetroStudyDriveCores; do
             bundle="build/${name}.clap"
             plist="${bundle}/Contents/Info.plist"
             binary="${bundle}/Contents/MacOS/${name}"
@@ -42,6 +42,7 @@ jobs:
               RetroStudyDigital) bundle_id=local.retro-study.digital ;;
               RetroStudyWobble) bundle_id=local.retro-study.wobble ;;
               RetroStudyMagnetic) bundle_id=local.retro-study.magnetic ;;
+              RetroStudyDriveCores) bundle_id=local.retro-study.drive-cores ;;
             esac
             test "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$bundle_id"
             lipo "$binary" -verify_arch arm64 x86_64
@@ -67,7 +68,7 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
       - name: Archive Linux CLAP modules
-        run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap RetroStudyMagnetic.clap
+        run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap RetroStudyMagnetic.clap RetroStudyDriveCores.clap
       - name: Upload Linux modules
         uses: actions/upload-artifact@v7.0.2
         with:

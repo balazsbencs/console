@@ -87,7 +87,14 @@ Clang. Production seeds and original model timing remain open. See
 [macro integration](magnetic-macro-integration.md) and
 [validation](magnetic-validation.json).
 
-GitHub Actions builds all three Linux modules and universal arm64/x86_64 macOS
+Drive Cores 0.1.0 now exposes the recovered Tube Pair, Air Pressure and Iron
+Transformer numerical cores. Across 187 scenarios / 1,040,384 samples per
+compiler, outputs match the isolated native cores with zero error under GCC
+and Clang. The outer processors and complete Distortion chain remain pending.
+See [Drive Cores implementation](drive-cores-implementation.md) and
+[validation](drive-cores-validation.json).
+
+GitHub Actions builds all four Linux modules and universal arm64/x86_64 macOS
 bundles. Host tests run on the CI runner architecture; the workflow verifies
 both Mach-O slices and preserves bundle structure in uploaded ZIPs. The
 complete RC-20 chain remains pending.
@@ -103,7 +110,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | --- | --- | --- |
 | Noise | cNoiseFX + cSimpleComp, pre/post routing | Graph recovered; DSP pending |
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
-| Distortion | cPlugChain + cGain blend | Chain configuration recovered; DSP pending |
+| Distortion | cPlugChain + cGain blend | Three magicDistort numerical cores native-tested; outer processors, other characters and full chain pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
 | Space | cResoX | Graph recovered; DSP pending |
 | Magnetic | cFlutter | Stereo kernel and four-generator macro graph native-tested; original model timing pending |
@@ -171,7 +178,8 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Port the distortion chain, cResoX Space and Noise/sample paths.
+3. Complete Distortion outer filters/oversampling and other characters, then
+   integrate its chain and Flux. Port cResoX Space and Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a

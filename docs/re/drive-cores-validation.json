@@ -1,0 +1,567 @@
+{
+  "milestone": "Drive Cores0.1.0: three isolated magicDistort numerical cores with study CLAP adapter",
+  "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "native_comparison": {
+    "gcc": {
+      "tube-pair": {
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scope": "isolated cAEMagicDistortion::tubePair setup/process; synthetic 148-byte state",
+        "counts": {
+          "scenarios": 80,
+          "setups": 8432,
+          "resets": 88,
+          "samples": 425984,
+          "state_comparisons": 221512
+        },
+        "max_error": 0.0,
+        "bit_exact_coefficients_histories_outputs": true,
+        "output_sha256": "57b320514215d2d45d078fc48ce05c5fee0fc574ac5e127b5c5a8ed178743d6c",
+        "limitations": [
+          "No original factory constructor, full plugin, focus filters, gains, Mix or Flux graph",
+          "Native double exp/atan imports bound to system libm",
+          "Reset checks explicit history-clearing contract, not a separately invoked native reset routine"
+        ]
+      },
+      "air-pressure": {
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scope": "isolated airPressure numeric setup/process; synthetic zero histories and delay rings; full study reset compared with fresh native state",
+        "scenarios": 64,
+        "samples": 262144,
+        "state_comparisons": 262144,
+        "changing_setups": 968,
+        "max_error": 0,
+        "all_float_patterns_equal": true,
+        "limitations": [
+          "No original magicDistort outer split/mix/oversampling or complete plugChainDist",
+          "Synthetic capacity chosen to cover interpolation taps; original allocation/constructor not run",
+          "Linux libm bound for reference and C"
+        ]
+      },
+      "iron-transformer": {
+        "scope": "Isolated numerical Iron transformer setup and core, before outer DC/mix; synthetic zero histories",
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scenarios": 43,
+        "samples": 352256,
+        "maximum_absolute_error": 0,
+        "state_bit_exact": true,
+        "dynamic_setup": true,
+        "reset": true,
+        "cases": [
+          {
+            "sample_rate": 1000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 1,
+            "samples": 8192
+          }
+        ]
+      }
+    },
+    "clang19": {
+      "tube-pair": {
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scope": "isolated cAEMagicDistortion::tubePair setup/process; synthetic 148-byte state",
+        "counts": {
+          "scenarios": 80,
+          "setups": 8432,
+          "resets": 88,
+          "samples": 425984,
+          "state_comparisons": 221512
+        },
+        "max_error": 0.0,
+        "bit_exact_coefficients_histories_outputs": true,
+        "output_sha256": "57b320514215d2d45d078fc48ce05c5fee0fc574ac5e127b5c5a8ed178743d6c",
+        "limitations": [
+          "No original factory constructor, full plugin, focus filters, gains, Mix or Flux graph",
+          "Native double exp/atan imports bound to system libm",
+          "Reset checks explicit history-clearing contract, not a separately invoked native reset routine"
+        ]
+      },
+      "air-pressure": {
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scope": "isolated airPressure numeric setup/process; synthetic zero histories and delay rings; full study reset compared with fresh native state",
+        "scenarios": 64,
+        "samples": 262144,
+        "state_comparisons": 262144,
+        "changing_setups": 968,
+        "max_error": 0,
+        "all_float_patterns_equal": true,
+        "limitations": [
+          "No original magicDistort outer split/mix/oversampling or complete plugChainDist",
+          "Synthetic capacity chosen to cover interpolation taps; original allocation/constructor not run",
+          "Linux libm bound for reference and C"
+        ]
+      },
+      "iron-transformer": {
+        "scope": "Isolated numerical Iron transformer setup and core, before outer DC/mix; synthetic zero histories",
+        "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+        "scenarios": 43,
+        "samples": 352256,
+        "maximum_absolute_error": 0,
+        "state_bit_exact": true,
+        "dynamic_setup": true,
+        "reset": true,
+        "cases": [
+          {
+            "sample_rate": 1000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 8000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 44100,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 48000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 96000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 192000,
+            "amount": 1,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.001,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.125,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.5,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 0.875,
+            "samples": 8192
+          },
+          {
+            "sample_rate": 1536000,
+            "amount": 1,
+            "samples": 8192
+          }
+        ]
+      }
+    }
+  },
+  "evidence_ids": {
+    "magic-calc": "ev_f500e9c6180c0966d1317252b148a4fadfe7fb00c00ed56bd0673f5ecd398baa",
+    "tube-setup": "ev_dadccdb0c177b6e18a7f514115edd49397dc6c42832ecdd36d8ad8679dced015",
+    "tube-process": "ev_90f63b79e05013687f9fbad4de6b1be14ac9f54a76bea050c5b5bef6dac9fce4",
+    "air-setup": "ev_e3ccaf5114b93bf9744c492eede5dd1011db9285dfe6c6f8d977faf9dcc1bede",
+    "air-process": "ev_74dace36652015680c5d5d3a6ca7095cf1fc5c91d67c862175b432a448cfbe32",
+    "iron-setup": "ev_5f04693a5bbe31d485d32d38af88018df4a9ddc7c5d5adf1decc618b4061e2fc",
+    "iron-stereo": "ev_3a08e880af172052197ecb8c4de55425f28f0f9e67ce5aaff022feba58ba287f",
+    "magic-process": "ev_bdfbd6742e433a3a00528c9fad60c287d0cdd2c81fd4aa0ba1448448749c4f70",
+    "magic-reset": "ev_b428c1fc9a10a45414aff05e0c44910d936f886e64bb8013e00c73985f772c55"
+  },
+  "clap_validator": {
+    "success": 33,
+    "skipped": 11
+  },
+  "ctest": {
+    "gcc_release": "5 passed",
+    "clang19_release": "5 passed",
+    "asan_ubsan": "5 passed"
+  },
+  "sha256": {
+    "src/dsp/drive.c": "d2752f3cef4bde7311cde81557e1460d709305cd27deacf4214d5aad2af7f4eb",
+    "src/dsp/drive.h": "99932f75da72904c3292d1c478a2f3bf8c4f48a395d1c6e635370f0aed266bb5",
+    "src/dsp/tube_pair.c": "2423521c9e05622e300c84f3682669eaa473733d3f838e10118f144d6f18395f",
+    "src/dsp/tube_pair.h": "e8bd645dcfcd9d3be75d1e821d5922890e300bb0208dabe23603af201d3ebeb9",
+    "src/dsp/air_pressure.c": "91520346d547ba01d17036d128f8eb1997ba4edcf2480e9cb8ed01ff227d3bd4",
+    "src/dsp/air_pressure.h": "ea3983ccfa968569dabc48c5c4ae7ebe864cac0185371366b2200ba57a066fb5",
+    "src/dsp/iron_transformer.c": "e3c67a7b12816f89b404daf2a1dfb5a2fa539088e81b6cca6260033e6788ffbb",
+    "src/dsp/iron_transformer.h": "4cbc672467d5f6ea0d58410758db8a24cb917d95bdded4c394629716e487464b",
+    "src/clap/drive_plugin.c": "b62b059b4fd5cc094f75a125d6ac1c10debfc4cf40c03b82ff661e1c5bb169a5",
+    "tests/drive_host.c": "b104d3efc500b74493b1f619acc27f41dcc504ffe5174be199dbde4930deee2c",
+    "tools/compare_native_tube_pair.py": "dee0cda03450b1477d0559fae29defb4d7341eb38c7411566b04927b6f58af6c",
+    "tools/compare_native_air_pressure.py": "b8eafab359ecbb351364782084fc3a7d19d0642a8432bfd26f90a5edc990003d",
+    "tools/compare_native_iron_transformer.py": "954862e4c99b0e33515e10ba3e908adab6d40b4243bd45af1fa01ed5c1e5213c",
+    "CMakeLists.txt": "27ee708181efc433a3e3441186929821880d5cdb9a9537d087619030210db571",
+    ".github/workflows/build.yml": "a07dbcd8dbe38acf694b87a55fe28f0c28c1015dd77eb067c28198fbbf08be9d",
+    "build-release/RetroStudyDriveCores.clap": "3139695f7d78ea020f32d4c0b8578d9de2f81c8f93f4b7bce24936cf6fedb6cf"
+  },
+  "limitations": [
+    "Synthetic zero numerical histories; original constructors/allocators not invoked",
+    "Outer focus filters, DC/mix, oversampling and complete Distortion graph pending",
+    "Crunch/Heavy/Zap other processor family pending",
+    "Study adapter mix, character switching and reset choices; original scheduling unverified",
+    "Linux libm for native and C; macOS math rounding/full plugin renders unverified"
+  ]
+}

@@ -1,4 +1,4 @@
-# Build the Digital, Wobble and Magnetic CLAP modules
+# Build the CLAP study modules
 
 This milestone implements the **stereo Digital DSP**, including Focus/Cut,
 internal modulation, normalized curves, Amount/Balance/Magnitude mapping and
@@ -15,7 +15,7 @@ production seed indices and full original notification timing remain open.
 See [Wobble fidelity notes](re/wobble-implementation.md) and
 [macro controls](re/wobble-macro-integration.md).
 
-The GitHub Actions workflow builds all three plugins on Linux and macOS. The macOS
+The GitHub Actions workflow builds all four plugins on Linux and macOS. The macOS
 job builds universal **arm64 + x86_64** bundles, runs host tests, verifies both
 slices and bundle metadata, and uploads ZIPs preserving the `.clap` bundles.
 Download them from the `RetroStudy-macOS-universal` artifact on a successful
@@ -32,7 +32,8 @@ ctest --test-dir build-release --output-on-failure
 
 The modules are `build-release/RetroStudyDigital.clap` and
 `build-release/RetroStudyWobble.clap`, plus
-`build-release/RetroStudyMagnetic.clap`. They are self-contained apart
+`build-release/RetroStudyMagnetic.clap` and
+`build-release/RetroStudyDriveCores.clap`. They are self-contained apart
 from the system C/math libraries; neither loads the original plugin or its
 resource packs. Load it through a CLAP host's scan path and use the host's
 generic parameter editor. No custom editor is implemented.
@@ -139,7 +140,7 @@ ctest --test-dir build-release --output-on-failure
 ```
 
 On macOS each `.clap` is a bundle directory containing `Contents/Info.plist`
-and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble` or `RetroStudyMagnetic`. Copy the entire
+and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble`, `RetroStudyMagnetic` or `RetroStudyDriveCores`. Copy the entire
 bundle into `~/Library/Audio/Plug-Ins/CLAP/`. CI artifacts are unsigned and
 unnotarized. macOS may require local authorization to load a downloaded bundle.
 
@@ -180,4 +181,16 @@ ranges, threshold automation safeguards, reset semantics and fidelity limits.
 python3 tools/compare_native_magnetic.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_fromto_knob.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_magnetic_macro.py --library build-release/libretro_dsp.so
+```
+
+Drive Cores 0.1.0 packages the recovered Tube Pair, Air Pressure and Iron
+Transformer numerical cores. Character 0/1/2 selects them, Amount is normalized
+[0,1], and Mix, Enable and Bypass are study adapter controls (IDs 4000–4004).
+This milestone excludes RC-20's outer filters, oversampling, gain staging and
+complete Distortion chain. See [scope and controls](re/drive-cores-implementation.md).
+
+```sh
+python3 tools/compare_native_tube_pair.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_air_pressure.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_iron_transformer.py --library build-release/libretro_dsp.so
 ```
