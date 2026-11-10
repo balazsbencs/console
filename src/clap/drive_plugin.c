@@ -13,25 +13,26 @@
 _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "Audio parameter publication requires lock-free integers");
 _Static_assert(sizeof(float) == 4, "State format requires 32-bit floats");
 
-enum { AMOUNT, CHARACTER, MIX, ENABLE, BYPASS, PROCESSING_MODE, LOW_HZ, HIGH_HZ, DIST_DB, PASS_DB, OUTPUT_HZ, MAGNITUDE, FLUX, SEED, PARAM_COUNT };
+enum { AMOUNT, CHARACTER, MIX, ENABLE, BYPASS, PROCESSING_MODE, LOW_HZ, HIGH_HZ, DIST_DB, PASS_DB, OUTPUT_HZ, MAGNITUDE, FLUX, SEED, REFERENCE_DB, PARAM_COUNT };
 typedef struct { const char *name; float low, high, initial; } parameter;
 static const parameter parameters[PARAM_COUNT] = {
     {"Amount",0,1,.5f}, {"Character",0,2,0}, {"Mix",0,1,1},
     {"Enable",0,1,1}, {"Bypass",0,1,0},
-    {"Processing Mode",0,2,0}, {"Low Frequency",20,20000,20},
+    {"Processing Mode",0,3,0}, {"Low Frequency",20,20000,20},
     {"High Frequency",20,20000,20000}, {"Processed Band Gain",-100,100,0},
     {"Passed Band Gain",-100,100,0}, {"Output Lowpass",20,20000,20000},
-    {"Magnitude",0,1,1}, {"Flux",0,1,0}, {"Flux Seed",0,65535,0},
+    {"Magnitude",0,1,1}, {"Flux",0,1,0}, {"Flux Seed",0,65535,0}, {"Reference Level",-100,100,0},
 };
-static const char *const mode_names[] = {"Core", "Processor", "Chain"};
+static const char *const mode_names[] = {"Core", "Processor", "Chain", "Classic"};
 static const char *const character_names[] = {"Tube Pair", "Air Pressure", "Iron Transformer"};
+static const char *const classic_names[] = {"Crunch", "Heavy", "Zap"};
 static const char *const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
     CLAP_PLUGIN_FEATURE_DISTORTION, CLAP_PLUGIN_FEATURE_STEREO, NULL};
 static const clap_plugin_descriptor_t descriptor = {
     .clap_version = CLAP_VERSION_INIT, .id = "local.retro-study.drive-cores",
     .name = "Retro Study Drive Cores", .vendor = "Retro Study", .url = "",
-    .manual_url = "", .support_url = "", .version = "0.3.0",
-    .description = "Recovered Tube Pair, Air Pressure and Iron Transformer with direct-core and frequency-selective processor modes. Three-character chain and seeded Flux mode; original graph timing and classic characters pending.",
+    .manual_url = "", .support_url = "", .version = "0.4.0",
+    .description = "Recovered six-character distortion DSP, direct processor controls, and a seeded Tube/Air/Iron chain. Classic preset EQ and original graph timing remain pending.",
     .features = features,
 };
 typedef struct {
@@ -61,7 +62,7 @@ static void apply_dsp_values(instance *s) {
     const float *v=s->applied;
     retro_drive_params p={.amount=v[AMOUNT],.character=v[CHARACTER],.mix=v[MIX],.enable=v[ENABLE],
         .processing_mode=v[PROCESSING_MODE],.low_hz=v[LOW_HZ],.high_hz=v[HIGH_HZ],
-        .dist_db=v[DIST_DB],.pass_db=v[PASS_DB],.output_hz=v[OUTPUT_HZ],.magnitude=v[MAGNITUDE],.flux=v[FLUX],.seed=v[SEED]};
+        .dist_db=v[DIST_DB],.pass_db=v[PASS_DB],.output_hz=v[OUTPUT_HZ],.magnitude=v[MAGNITUDE],.flux=v[FLUX],.seed=v[SEED],.reference_db=v[REFERENCE_DB]};
     (void)retro_drive_set(s->dsp,&p);
 }
 static void apply_values(instance *s) {
@@ -184,7 +185,7 @@ static bool CLAP_ABI param_text(const clap_plugin_t *p, clap_id id, double value
         value < parameters[i].low || value > parameters[i].high) return false;
     int n;
     if (i == CHARACTER && valid_value(CHARACTER,value))
-        n = snprintf(text,capacity,"%s",character_names[(unsigned)value]);
+        n = snprintf(text,capacity,"%s",(value_at(self(p),PROCESSING_MODE)==3 ? classic_names : character_names)[(unsigned)value]);
     else if (i == PROCESSING_MODE && valid_value(PROCESSING_MODE,value))
         n = snprintf(text,capacity,"%s",mode_names[(unsigned)value]);
     else n = snprintf(text, capacity, "%.9g", value);
@@ -194,8 +195,8 @@ static bool CLAP_ABI param_parse(const clap_plugin_t *p, clap_id id, const char 
     (void)p; int i = index_for(id);
     if (i < 0 || !text || !value) return false;
     if (i == CHARACTER) for (unsigned c=0;c<3;++c)
-        if (!strcmp(text,character_names[c])) { *value=c; return true; }
-    if (i == PROCESSING_MODE) for (unsigned mode=0;mode<3;++mode)
+        if (!strcmp(text,(value_at(self(p),PROCESSING_MODE)==3 ? classic_names : character_names)[c])) { *value=c; return true; }
+    if (i == PROCESSING_MODE) for (unsigned mode=0;mode<4;++mode)
         if (!strcmp(text,mode_names[mode])) { *value=mode; return true; }
     char *end; double parsed = strtod(text, &end);
     float rounded = (float)parsed;
@@ -219,7 +220,7 @@ static uint32_t decode32(const unsigned char *in) {
 enum { STATE_SIZE = 12 + PARAM_COUNT * 8 };
 static bool CLAP_ABI save_state(const clap_plugin_t *p, const clap_ostream_t *stream) {
     unsigned char data[STATE_SIZE]; memcpy(data, "RSDC", 4);
-    encode32(data + 4, 3); encode32(data + 8, PARAM_COUNT);
+    encode32(data + 4, 4); encode32(data + 8, PARAM_COUNT);
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         encode32(data + 12 + i * 8, 4000 + i);
         encode32(data + 16 + i * 8, float_bits(value_at(self(p), i)));
@@ -240,7 +241,7 @@ static bool CLAP_ABI load_state(const clap_plugin_t *p, const clap_istream_t *st
         offset += (size_t)n;
     }
     uint32_t version = decode32(data + 4), count = decode32(data + 8);
-    if (memcmp(data, "RSDC", 4) || !((version == 1 && count == 5) || (version == 2 && count == 11) || (version == 3 && count == PARAM_COUNT))) return false;
+    if (memcmp(data, "RSDC", 4) || !((version == 1 && count == 5) || (version == 2 && count == 11) || (version == 3 && count == 14) || (version == 4 && count == PARAM_COUNT))) return false;
     size_t size = 12 + count * 8;
     while (offset < size) {
         int64_t n = stream->read(stream, data + offset, size - offset);

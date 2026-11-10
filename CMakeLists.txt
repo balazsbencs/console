@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(retro_study VERSION 0.3.0 LANGUAGES C)
+project(retro_study VERSION 0.4.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -17,7 +17,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-add_library(retro_dsp_objects OBJECT src/dsp/bitcolor.c src/dsp/curves.c src/dsp/noisegen.c src/dsp/relations.c src/dsp/digital_flux.c src/dsp/wobble.c src/dsp/wobble_macro.c src/dsp/magnetic.c src/dsp/magnetic_macro.c src/dsp/air_pressure.c src/dsp/tube_pair.c src/dsp/iron_transformer.c src/dsp/drive.c src/dsp/magic.c src/dsp/gain.c src/dsp/dist_chain.c)
+add_library(retro_dsp_objects OBJECT src/dsp/bitcolor.c src/dsp/curves.c src/dsp/noisegen.c src/dsp/relations.c src/dsp/digital_flux.c src/dsp/wobble.c src/dsp/wobble_macro.c src/dsp/magnetic.c src/dsp/magnetic_macro.c src/dsp/air_pressure.c src/dsp/tube_pair.c src/dsp/iron_transformer.c src/dsp/drive.c src/dsp/classic.c src/dsp/classic_split.c src/dsp/magic.c src/dsp/gain.c src/dsp/dist_chain.c)
 target_include_directories(retro_dsp_objects PUBLIC src/dsp)
 add_library(retro_dsp SHARED $<TARGET_OBJECTS:retro_dsp_objects>)
 target_include_directories(retro_dsp PUBLIC src/dsp)
@@ -41,10 +41,10 @@ target_link_libraries(retro_magnetic PRIVATE m)
 set_target_properties(retro_magnetic PROPERTIES RETRO_CLAP_VERSION 0.2.0)
 retro_configure_clap(retro_magnetic RetroStudyMagnetic local.retro-study.magnetic)
 
-add_library(retro_drive MODULE src/clap/drive_plugin.c src/dsp/dist_chain.c src/dsp/gain.c src/dsp/relations.c src/dsp/noisegen.c src/dsp/drive.c src/dsp/magic.c src/dsp/tube_pair.c src/dsp/air_pressure.c src/dsp/iron_transformer.c)
+add_library(retro_drive MODULE src/clap/drive_plugin.c src/dsp/dist_chain.c src/dsp/gain.c src/dsp/relations.c src/dsp/noisegen.c src/dsp/drive.c src/dsp/classic.c src/dsp/classic_split.c src/dsp/magic.c src/dsp/tube_pair.c src/dsp/air_pressure.c src/dsp/iron_transformer.c)
 target_include_directories(retro_drive PRIVATE src/dsp third_party/clap/include)
 target_link_libraries(retro_drive PRIVATE m)
-set_target_properties(retro_drive PROPERTIES RETRO_CLAP_VERSION 0.3.0)
+set_target_properties(retro_drive PROPERTIES RETRO_CLAP_VERSION 0.4.0)
 retro_configure_clap(retro_drive RetroStudyDriveCores local.retro-study.drive-cores)
 
 if(BUILD_TESTING)

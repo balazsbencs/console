@@ -183,19 +183,29 @@ python3 tools/compare_native_fromto_knob.py --library build-release/libretro_dsp
 python3 tools/compare_native_magnetic_macro.py --library build-release/libretro_dsp.so
 ```
 
-Drive Cores 0.3.0 packages the recovered Tube Pair, Air Pressure and Iron
+Drive Cores 0.4.0 packages the recovered Tube Pair, Air Pressure and Iron
 Transformer numerical cores. Character 0/1/2 selects them, Amount is normalized
 [0,1], and Mix, Enable and Bypass are study adapter controls (IDs 4000–4004).
 Processing Mode 0 preserves the original core-only study. Mode 1 adds the
 recovered stereo frequency split, output filter, band gains and smoothed mix
-with controls 4005–4010. State formats 1/2 load with their existing mode; format 3 stores all
-fourteen controls. See [Processor mode](re/magic-processor-implementation.md).
+with controls 4005–4010. State formats 1/2/3 load with their existing mode; format 4 stores all
+fifteen controls. See [Processor mode](re/magic-processor-implementation.md).
 Processing Mode 2 adds the three-character Chain, gain staging and settled
 Magnitude/Flux routing. Controls 4011–4013 are Magnitude, Flux and Flux Seed.
 Seed zero is an explicit study choice. See [Chain mode](re/dist-chain-integration.md)
 for its 64-frame control cadence and unresolved original graph timing.
-The classic Crunch/Heavy/Zap engines and complete original host graph remain
-pending. The inspected Magic path has no internal oversampling stage.
+Processing Mode 3 (Classic) selects Crunch/Heavy/Zap with the Character control.
+It exposes the recovered single-band processor, reusing frequency limits,
+band gains, output lowpass and Mix. Control 4014 is Reference Level in dB,
+used only in Classic mode. Magnitude/Flux remain Chain-only controls. Classic
+uses native SIMD arithmetic per sample and a fixed 64-frame history-cleanup
+cadence, giving zero added latency and stable output across host partitions.
+Heavy uses the original SSE reciprocal estimate on x86; other architectures
+use division and have no claim of bit identity with the x86 reference.
+Defaults are study controls rather than original character presets. The
+original Crunch/Heavy/Zap pre/post EQ and gains, and complete host graph,
+remain pending. See [Classic processor](re/classic-implementation.md).
+The inspected Magic path has no internal oversampling stage.
 
 ```sh
 python3 tools/compare_native_tube_pair.py --library build-release/libretro_dsp.so
@@ -206,4 +216,6 @@ python3 tools/compare_native_magic.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_gain.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_knob_gain.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_dist_chain.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_classic_split.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_classic.py --library build-release/libretro_dsp.so
 ```

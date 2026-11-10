@@ -1,0 +1,331 @@
+{
+  "milestone": "Drive Cores 0.4.0: Crunch, Heavy and Zap direct Classic processors",
+  "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "native_processor_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Full numerical Classic stereo CalcInternals/Process64 with synthetic128byte object and verifiedmask copies",
+      "scenarios": 240,
+      "samples": 1966080,
+      "state_float_comparisons": 265200,
+      "state_bit_exact": true,
+      "maximum_absolute_error": 0,
+      "all_float_patterns_equal": true,
+      "sample_rates": [
+        1000,
+        8000,
+        22050,
+        44100,
+        44117,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "initial_parameter_variations": [
+        {},
+        {
+          "amount": 0,
+          "mix": 0
+        },
+        {
+          "amount": 100,
+          "mix": 100,
+          "reference_db": -18
+        },
+        {
+          "amount": 13,
+          "low_hz": 8000,
+          "high_hz": 1500,
+          "mix": 30,
+          "dist_db": -15,
+          "pass_db": 4,
+          "output_hz": 600,
+          "reference_db": 12
+        },
+        {
+          "amount": 75,
+          "low_hz": 200,
+          "high_hz": 5000,
+          "mix": 72,
+          "dist_db": 100,
+          "pass_db": -100,
+          "output_hz": 20,
+          "reference_db": 22
+        },
+        {
+          "amount": 1,
+          "low_hz": 20000,
+          "high_hz": 20,
+          "mix": 99,
+          "dist_db": -100,
+          "pass_db": 100,
+          "output_hz": 20000,
+          "reference_db": -22
+        },
+        {
+          "amount": 100,
+          "reference_db": 100
+        },
+        {
+          "amount": 0,
+          "reference_db": -100
+        }
+      ],
+      "dynamic_controls": true,
+      "character_changes": true,
+      "reset": true,
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "No original constructor/globalinitializer/fullpluginhost",
+        "Native silence shortcut disabled",
+        "Linux libm and x86 SSE rounding model",
+        "No full Dist chain or oversampling"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Full numerical Classic stereo CalcInternals/Process64 with synthetic128byte object and verifiedmask copies",
+      "scenarios": 240,
+      "samples": 1966080,
+      "state_float_comparisons": 265200,
+      "state_bit_exact": true,
+      "maximum_absolute_error": 0,
+      "all_float_patterns_equal": true,
+      "sample_rates": [
+        1000,
+        8000,
+        22050,
+        44100,
+        44117,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "initial_parameter_variations": [
+        {},
+        {
+          "amount": 0,
+          "mix": 0
+        },
+        {
+          "amount": 100,
+          "mix": 100,
+          "reference_db": -18
+        },
+        {
+          "amount": 13,
+          "low_hz": 8000,
+          "high_hz": 1500,
+          "mix": 30,
+          "dist_db": -15,
+          "pass_db": 4,
+          "output_hz": 600,
+          "reference_db": 12
+        },
+        {
+          "amount": 75,
+          "low_hz": 200,
+          "high_hz": 5000,
+          "mix": 72,
+          "dist_db": 100,
+          "pass_db": -100,
+          "output_hz": 20,
+          "reference_db": 22
+        },
+        {
+          "amount": 1,
+          "low_hz": 20000,
+          "high_hz": 20,
+          "mix": 99,
+          "dist_db": -100,
+          "pass_db": 100,
+          "output_hz": 20000,
+          "reference_db": -22
+        },
+        {
+          "amount": 100,
+          "reference_db": 100
+        },
+        {
+          "amount": 0,
+          "reference_db": -100
+        }
+      ],
+      "dynamic_controls": true,
+      "character_changes": true,
+      "reset": true,
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "No original constructor/globalinitializer/fullpluginhost",
+        "Native silence shortcut disabled",
+        "Linux libm and x86 SSE rounding model",
+        "No full Dist chain or oversampling"
+      ]
+    }
+  },
+  "native_splitter_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Isolated original SplitMono4/SplitStereo4 with synthetic coefficients and histories; no constructor or full distortion process",
+      "scenarios": 32,
+      "four_frame_groups": 131072,
+      "band_output_values": 2359296,
+      "state_float_comparisons": 786432,
+      "maximum_absolute_error": 0,
+      "all_float_patterns_equal": true,
+      "dynamic_coefficients": true,
+      "mono": true,
+      "stereo": true,
+      "per_frame_stereo_api": true,
+      "initial_coefficients": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0.001,
+          0.999
+        ],
+        [
+          0.005,
+          0.37
+        ],
+        [
+          0.97,
+          0.123
+        ],
+        [
+          1e-05,
+          3e-05
+        ]
+      ],
+      "limitations": [
+        "No original filter setup, waveshaping, gains, dry/wet or full chain",
+        "Only finite stable coefficients0..1 tested"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Isolated original SplitMono4/SplitStereo4 with synthetic coefficients and histories; no constructor or full distortion process",
+      "scenarios": 32,
+      "four_frame_groups": 131072,
+      "band_output_values": 2359296,
+      "state_float_comparisons": 786432,
+      "maximum_absolute_error": 0,
+      "all_float_patterns_equal": true,
+      "dynamic_coefficients": true,
+      "mono": true,
+      "stereo": true,
+      "per_frame_stereo_api": true,
+      "initial_coefficients": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0.001,
+          0.999
+        ],
+        [
+          0.005,
+          0.37
+        ],
+        [
+          0.97,
+          0.123
+        ],
+        [
+          1e-05,
+          3e-05
+        ]
+      ],
+      "limitations": [
+        "No original filter setup, waveshaping, gains, dry/wet or full chain",
+        "Only finite stable coefficients0..1 tested"
+      ]
+    }
+  },
+  "local_tests": {
+    "gcc_release": "5/5 CTests passed",
+    "clang19_release": "5/5 CTests passed",
+    "address_undefined_sanitizers": "5/5 CTests passed",
+    "host_samples_per_run": 983040,
+    "classic_contract_scenarios": 24,
+    "state_migrations": [
+      1,
+      2,
+      3
+    ],
+    "state_version": 4,
+    "clap_parameter_count": 15
+  },
+  "clap_validator": {
+    "version": "0.4.1-127-g152b982",
+    "statuses": {
+      "success": 32,
+      "skipped": 11,
+      "warning": 1
+    },
+    "warnings": [
+      {
+        "code": "warning",
+        "details": "The plugin took 2.47x longer to process denormals, you should set flush-to-zero flags or avoid denormals in some other way."
+      }
+    ],
+    "serial_denormal_followup": [
+      {
+        "code": "success",
+        "details": "The plugin took 1.63x longer to process denormals"
+      }
+    ]
+  },
+  "limitations": [
+    "Direct Classic processors only; original character preset EQ/gain chains and macro timing pending",
+    "SSE Heavy approximation verified only on x86; ARM uses division with unverified bit identity",
+    "Reference imports rebound to Linux libm; cross-platform reference equivalence unresolved",
+    "Original scalar remainder and silence shortcuts are outside native comparison scope",
+    "Host partitions use a fixed64-frame numerical cleanup adapter"
+  ]
+}

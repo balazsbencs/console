@@ -39,12 +39,14 @@ jobs:
             test "$(plutil -extract CFBundleExecutable raw -o - "$plist")" = "$name"
             test "$(plutil -extract CFBundlePackageType raw -o - "$plist")" = BNDL
             case "$name" in
-              RetroStudyDigital) bundle_id=local.retro-study.digital ;;
-              RetroStudyWobble) bundle_id=local.retro-study.wobble ;;
-              RetroStudyMagnetic) bundle_id=local.retro-study.magnetic ;;
-              RetroStudyDriveCores) bundle_id=local.retro-study.drive-cores ;;
+              RetroStudyDigital) bundle_id=local.retro-study.digital; version=0.3.0 ;;
+              RetroStudyWobble) bundle_id=local.retro-study.wobble; version=0.2.0 ;;
+              RetroStudyMagnetic) bundle_id=local.retro-study.magnetic; version=0.2.0 ;;
+              RetroStudyDriveCores) bundle_id=local.retro-study.drive-cores; version=0.4.0 ;;
             esac
             test "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$bundle_id"
+            test "$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$version"
+            test "$(plutil -extract CFBundleVersion raw -o - "$plist")" = "$version"
             lipo "$binary" -verify_arch arm64 x86_64
             lipo -info "$binary"
             ditto -c -k --sequesterRsrc --keepParent "$bundle" "dist/${name}-macOS-universal.zip"
