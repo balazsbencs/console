@@ -1,5 +1,5 @@
 {
-  "milestone": "Magnetic0.1.0 isolated stereo kernel and direct-control CLAP",
+  "milestone": "Magnetic0.2.0 direct kernel plus settled Amount/Balance/Magnitude/Flux/Dropouts and four free-running generators",
   "native_comparison": {
     "gcc": {
       "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
@@ -49,18 +49,141 @@
   "sha256": {
     "src/dsp/magnetic.c": "3d06de487a933714e34dadbcb8f1ccae3ded8d626ffee763c97a667ef8be78e6",
     "src/dsp/magnetic.h": "c041057b5956fd5e31a824c2b41cfc87fe45ca100e6d007fa9f73d7e802c6a9d",
-    "src/clap/magnetic_plugin.c": "e4cdf82645f7a754cc6e4d892b63984f6584d6068cfe30ed4a921fbefb343a2f",
-    "tests/magnetic_host.c": "bf2abd920d3f8f7d4ae166bb7345a0528f774ce9f07a33f79fae7394303af26a",
-    "tools/native_magnetic_probe.py": "5d5817e2c787aa7a12c3b9812067fd9b60227404335b8ce7b44b1a008c039ae0",
+    "src/clap/magnetic_plugin.c": "baf12baf1c5fae493d83d2883630b4742ea49d0614ae4cc6ec5e3fec5f5026d1",
+    "tests/magnetic_host.c": "7648531ce03a4245e4662109a158b8d423c80b8479e15574ffcd34c022882264",
+    "tools/native_magnetic_probe.py": "f79c922fc201f2e6228355162525520c4c5f4825f015dd1fc7dc9004411a785f",
     "tools/compare_native_magnetic.py": "ac42f1036ce25f04a4b96b1e80858b13213f705c57856e25b79ae79d0e162fff",
-    "CMakeLists.txt": "866b102dc29cf0f8f35add1f82cd1424cd55a4d6f4408b031055d8a05fd551f0",
+    "CMakeLists.txt": "4995d92ab0b2dfc3112c57ecae20d1fe4ee8e8e9827b7c44925d82cbfc5a5e09",
     ".github/workflows/build.yml": "4345d62c743881a074e5675edd3dc5ebaccfb4bbbde26908ae46ac53b25f84dc",
-    "build-release/RetroStudyMagnetic.clap": "afebf689022190744c032d1660b88d5f3196d1761472ece37f87b6607e838cfb"
+    "build-release/RetroStudyMagnetic.clap": "43496321e63478f87e3bf4f4abcf05b811fc943fb8763b34891cba6cdfb8cce8",
+    "src/dsp/magnetic_macro.c": "2cb71befff7295b3f25535b20c5ce2918ffcbdb5da3af8cf8fb7d5df11e47f30",
+    "src/dsp/magnetic_macro.h": "9ffca8e7d205eaa7f5b9b4959fb55798a761138ffc24c3f59002793b2570dbc0",
+    "src/dsp/relations.c": "fb6fae18d6941eddd2be856931b922a0517ef0adb5f3d79b1d176b988d9835bb",
+    "src/dsp/relations.h": "c6f87dd1befc1dd3846bc82bb87196114ec7fb1891449d490820a452acb261f7",
+    "tools/compare_native_magnetic_macro.py": "f2f5e7668c4a2acff83a5e927b97f2c2fbde58a8431344f1a1e3dca0e858f3d7",
+    "tools/compare_native_fromto_knob.py": "5c3c003da0eae8587a80488308227f850f6cf8a85c62efbe84a9158a02d1e3ae"
   },
   "limitations": [
     "Synthetic constructor/prepare/cached model state; inactive visualization; active batch marker",
     "Linux libm for both reference and C; macOS rounding and full original host output unverified",
-    "Front-panel macro controls and four free-running noise generators pending",
-    "CLAP crossed-threshold safeguard and deterministic full reset are study adapter choices"
-  ]
+    "CLAP crossed-threshold safeguard and deterministic full reset are study adapter choices",
+    "Explicit study seeds; original production relation indices unresolved",
+    "Settled graph inputs and notifications; original startup/reset and ModelStore scheduler unverified"
+  ],
+  "macro_comparison": {
+    "gcc": {
+      "scope": "synthetic settled Magnetic resource relations + original Drive + stereo cFlutter kernel",
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "counts": {
+        "scenarios": 60,
+        "ticks": 79872,
+        "noise_outputs": 319488,
+        "noise_state_bytes": 12779520,
+        "targets": 718848,
+        "audio_samples": 10223616
+      },
+      "max_control_error": 0,
+      "max_audio_error": 0,
+      "bit_exact_noise_state": true,
+      "limitations": [
+        "Explicit seeds; original production relation indices unresolved",
+        "Manually settled notifications before each64frame Drive/render; no full ModelStore scheduler",
+        "Synthetic constructor/prepare/cached model state, Linux libm, inactive visualization",
+        "Full original startup/reset and cross-platform reference equivalence unverified"
+      ]
+    },
+    "clang19": {
+      "scope": "synthetic settled Magnetic resource relations + original Drive + stereo cFlutter kernel",
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "counts": {
+        "scenarios": 60,
+        "ticks": 79872,
+        "noise_outputs": 319488,
+        "noise_state_bytes": 12779520,
+        "targets": 718848,
+        "audio_samples": 10223616
+      },
+      "max_control_error": 0,
+      "max_audio_error": 0,
+      "bit_exact_noise_state": true,
+      "limitations": [
+        "Explicit seeds; original production relation indices unresolved",
+        "Manually settled notifications before each64frame Drive/render; no full ModelStore scheduler",
+        "Synthetic constructor/prepare/cached model state, Linux libm, inactive visualization",
+        "Full original startup/reset and cross-platform reference equivalence unverified"
+      ]
+    }
+  },
+  "fromto_knob_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "original cRelationSpecHandler::objectChanged opcode F, synthetic model callbacks",
+      "comparisons": 361146,
+      "max_error": 0.0,
+      "all_float_patterns_equal": true,
+      "result_sha256": "e4a89b9022301fde1cdc9e0db57ec7a1549de29f2d3820d0846c69abdc5dbe9b",
+      "magnetic_mapping": [
+        {
+          "input": 0,
+          "output": 0.14000000059604645
+        },
+        {
+          "input": 0.25,
+          "output": 0.1550000011920929
+        },
+        {
+          "input": 0.5,
+          "output": 0.17000000178813934
+        },
+        {
+          "input": 0.75,
+          "output": 0.3349999785423279
+        },
+        {
+          "input": 1,
+          "output": 0.5
+        }
+      ],
+      "limitations": [
+        "Finite input and anchors; curvature strictly between zero and one",
+        "Extrapolation cases use .5 curves to avoid rational poles",
+        "Synthetic callbacks; original production scheduling not executed"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "original cRelationSpecHandler::objectChanged opcode F, synthetic model callbacks",
+      "comparisons": 361146,
+      "max_error": 0.0,
+      "all_float_patterns_equal": true,
+      "result_sha256": "e4a89b9022301fde1cdc9e0db57ec7a1549de29f2d3820d0846c69abdc5dbe9b",
+      "magnetic_mapping": [
+        {
+          "input": 0,
+          "output": 0.14000000059604645
+        },
+        {
+          "input": 0.25,
+          "output": 0.1550000011920929
+        },
+        {
+          "input": 0.5,
+          "output": 0.17000000178813934
+        },
+        {
+          "input": 0.75,
+          "output": 0.3349999785423279
+        },
+        {
+          "input": 1,
+          "output": 0.5
+        }
+      ],
+      "limitations": [
+        "Finite input and anchors; curvature strictly between zero and one",
+        "Extrapolation cases use .5 curves to avoid rational poles",
+        "Synthetic callbacks; original production scheduling not executed"
+      ]
+    }
+  }
 }

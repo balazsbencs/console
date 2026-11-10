@@ -227,3 +227,12 @@ reset is compared with fresh native construction/prepare state, not presented
 as behavior of the original partial reset. These tests establish the direct
 kernel scope; Magnetic macro/Flux graph execution and production scheduling
 remain outside the comparison.
+
+## Macro integration follow-up
+
+The FromToKnob relation is now native-verified in
+[fromto-knob-findings.md](fromto-knob-findings.md). The settled four-generator
+macro graph and audio composition are implemented and compared in
+[magnetic-macro-integration.md](magnetic-macro-integration.md), superseding the
+pending macro-port items above. Original production seed indices, initialization
+ordering and full notification scheduling remain unresolved.

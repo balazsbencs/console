@@ -1,4 +1,4 @@
-# Magnetic kernel and CLAP 0.1.0
+# Magnetic kernel and CLAP 0.2.0
 
 The C11 implementation in `src/dsp/magnetic.c` reconstructs the stereo
 `Block::cFlutterBlock::processAudio` routine at `0x353c30` in the supplied
@@ -28,10 +28,11 @@ it retains oscillator phase and interpolation history. The study's full reset
 instead restores deterministic constructor/prepare state. Enable=0 and the
 Depth=WearDepth=0 early exit copy dry audio and freeze kernel history.
 
-The standalone `RetroStudyMagnetic.clap` has 14 controls, IDs 3000–3013:
+The standalone `RetroStudyMagnetic.clap` retains its 14 direct controls, IDs 3000–3013:
 Depth, Depth Steer, Rate, Stereo Phase, Wear Gain, Wear Pan, Wear Stereo, Wear
 Depth, Dropout Steer, Dropout Amount, Dropout Min, Dropout Max, Enable, Bypass.
-State format 1 (`RSMG`) stores all controls using explicit little-endian records.
+State format 2 (`RSMG`) stores all 24 controls using explicit little-endian records;
+format 1 states load with new controls defaulted.
 Host automation is applied at sample offsets. Bypass copies dry and freezes
 history; reset and activation restart the study state. Independent host
 threshold automation can cross the original linked thresholds: the adapter
@@ -39,10 +40,10 @@ limits effective Min to .9999 and raises effective Max to at least Min+.0001.
 The saved/displayed values remain the host values. This adapter safeguard is
 separate from native fidelity comparisons, which use ordered thresholds.
 
-This milestone supplies external modulation signals directly. It does not yet
-connect the four free-running noise generators or recreate Amount/Balance/
-Magnitude/Flux mappings. Their recovered resource wiring is documented in
-[magnetic-control-findings.md](magnetic-control-findings.md). Defaults are study
+Direct mode supplies external modulation signals. Macro mode now connects the
+four free-running generators and recovered Amount/Balance/Magnitude/Flux/Dropouts
+mappings. See [macro integration](magnetic-macro-integration.md) and the resource
+wiring in [magnetic-control-findings.md](magnetic-control-findings.md). Defaults are study
 settings, not an RC-20 preset. The complete effect graph, original model
 notification timing and factory preset behavior remain pending.
 

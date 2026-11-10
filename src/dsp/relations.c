@@ -16,6 +16,23 @@ float rs_relation_from_to(float input, float from_low, float from_high,
     float y = (x * k) / (((k + k + -1.0f) * x + 1.0f) - k);
     return (to_high - to_low) * y + to_low;
 }
+float rs_relation_from_to_knob(float input, float low, float middle, float high,
+                               float lower_curve, float upper_curve) {
+    float from, to, k, x = input;
+    if (input < 0.5f) {
+        from = low; to = middle; k = lower_curve;
+    } else {
+        from = middle; to = high; k = upper_curve;
+        x = x + -0.5f;
+    }
+    x = x + x;
+    float numerator = x * k;
+    float denominator = (k + k + -1.0f) * x;
+    denominator = denominator + 1.0f;
+    denominator = denominator - k;
+    float y = numerator / denominator;
+    return (to - from) * y + from;
+}
 void rs_relation_triangle(float x, float *left, float *right) {
     float inv = 1.0f - x;
     *left = x < 0.5f ? 1.0f : inv + inv;

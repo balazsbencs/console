@@ -7,4 +7,6 @@ float rs_relation_mul_triple(float a, float b, float c,
 float rs_relation_modulate(float input, float modulation, float style);
 float rs_relation_from_to(float input, float from_low, float from_high,
                           float to_low, float to_high, float curvature);
+float rs_relation_from_to_knob(float input, float low, float middle, float high,
+                               float lower_curve, float upper_curve);
 #endif

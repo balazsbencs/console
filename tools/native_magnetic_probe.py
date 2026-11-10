@@ -109,6 +109,10 @@ class NativeMagnetic(NativeBitColor):
             elif name in self.PARAMETERS:
                 off = self.PARAMETERS[name]
                 changed = self.values.get(off) != value
+                # Preserve prepare's dirty depth/phase caches when a caller
+                # republishes an unchanged value before the first render.
+                if not changed and name in ('depth', 'stereo_phase'):
+                    continue
                 self.values[off] = value
                 self.wrap(off, value)
                 if changed and name in ('depth', 'stereo_phase'):

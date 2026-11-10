@@ -1,5 +1,6 @@
 #include <clap/clap.h>
 #include "magnetic.h"
+#include "magnetic_macro.h"
 #include <assert.h>
 #include <dlfcn.h>
 #include <math.h>
@@ -9,9 +10,11 @@
 #include <xmmintrin.h>
 #endif
 
-enum { PARAM_COUNT = 14, FRAMES = 4096, MAX_BLOCK = 512 };
-static const float defaults[PARAM_COUNT]={1,.5f,.5f,0,0,0,0,1,0,0,.1f,.25f,1,0};
-static const float settings[PARAM_COUNT]={.83f,.31f,.37f,.79f,-.61f,-.43f,1,.71f,.66f,1,.18f,.47f,1,0};
+enum { PARAM_COUNT = 24, FRAMES = 4096, MAX_BLOCK = 512 };
+static const float defaults[PARAM_COUNT]={1,.5f,.5f,0,0,0,0,1,0,0,.1f,.25f,1,0,
+    0,0,.5f,1,0,0,0,1,2,3};
+static const float settings[PARAM_COUNT]={.83f,.31f,.37f,.79f,-.61f,-.43f,1,.71f,.66f,1,.18f,.47f,1,0,
+    0,.73f,.31f,.68f,.91f,.82f,123,456,789,1011};
 static const void *CLAP_ABI host_extension(const clap_host_t *host, const char *id) {
     (void)host; (void)id; return NULL;
 }
@@ -76,8 +79,14 @@ static void check_state(const clap_plugin_t *p) {
     assert(!state->load(p, &in)); check_values(p, defaults);
     m.data[m.size - 8] ^= 1; m.cursor = 0;
     assert(state->load(p, &in)); check_values(p, settings);
-
+    /* Version 1 has exactly the original 14 records; new controls default even
+       after nondefault macro controls and seeds have been used. */
+    m.data[4] = 1; m.data[8] = 14; m.size = 12 + 14 * 8; m.cursor = 0;
+    assert(state->load(p, &in));
+    float migrated[PARAM_COUNT]; memcpy(migrated, defaults, sizeof(migrated));
+    memcpy(migrated, settings, 14 * sizeof(float)); check_values(p, migrated);
 }
+
 static void core_range(retro_magnetic *core, const float *values, float input[2][FRAMES],
                        float output[2][FRAMES], unsigned first, unsigned last) {
     for (unsigned c=0;c<2;++c)
@@ -154,6 +163,108 @@ static void check_render(const clap_plugin_t *p, float rate) {
     }
 }
 
+/* Compose the kernel and four generators with a separate 64-frame control
+   clock. Host buffer sizes and event grouping do not drive this reference. */
+static void macro_params(retro_magnetic *core, const rs_magnetic_macro *macro, const float *v) {
+    retro_magnetic_params cp = core_params(v);
+    if (v[14] != 0) rs_magnetic_macro_apply(macro, v[17], v[15], v[16], v[19], &cp);
+    assert(retro_magnetic_set(core, &cp));
+}
+static void reset_generators(rs_magnetic_macro *macro, const float *v) {
+    rs_magnetic_macro_reset(macro, (int32_t)v[20], (int32_t)v[21], (int32_t)v[22], (int32_t)v[23]);
+}
+static void check_macro_render(const clap_plugin_t *plugin, float rate) {
+    enum { N = 8192 };
+    float input[2][N], expected[2][N], output[2][N], previous[2][N];
+    float initial[PARAM_COUNT]; memcpy(initial, settings, sizeof(initial)); initial[14] = 1;
+    for (unsigned i = 0; i < N; ++i) {
+        input[0][i] = .7f * (float)sin(i * .071); input[1][i] = .4f * (float)cos(i * .093);
+    }
+    const unsigned times[] = {7,7,269,1151,1539,1797,2049,2561,
+        3333,3333,3333,3333,4096,4096,4096,4096,6144};
+    const unsigned indices[] = {15,16,12,12,13,13,14,14,
+        20,21,22,23,15,16,17,18,19};
+    const float changes[] = {.91f,.2f,0,1,1,0,0,1,
+        327,119,4095,65535,.6f,.8f,.9f,.3f,.15f};
+    enum { CHANGES = sizeof(times) / sizeof(times[0]) };
+    for (unsigned pass = 0; pass < 2; ++pass) {
+        set_values(plugin, initial);
+        assert(plugin->activate(plugin, rate, 1, MAX_BLOCK));
+        assert(plugin->start_processing(plugin));
+        /* Reset must rewind all four generators as well as audio histories. */
+        float *warm_in[] = {input[0], input[1]}, *warm_out[] = {output[0], output[1]};
+        clap_audio_buffer_t warm_input = {.data32 = warm_in, .channel_count = 2};
+        clap_audio_buffer_t warm_output = {.data32 = warm_out, .channel_count = 2};
+        clap_process_t warmup = {.frames_count = MAX_BLOCK, .audio_inputs = &warm_input,
+            .audio_outputs = &warm_output, .audio_inputs_count = 1, .audio_outputs_count = 1};
+        assert(plugin->process(plugin, &warmup) != CLAP_PROCESS_ERROR); plugin->reset(plugin);
+        retro_magnetic *core = retro_magnetic_create(); assert(core);
+        rs_magnetic_macro macro = {0}; reset_generators(&macro, initial);
+        float v[PARAM_COUNT]; memcpy(v, initial, sizeof(v));
+        macro_params(core, &macro, v); assert(retro_magnetic_prepare(core, rate));
+        memcpy(expected, input, sizeof(expected));
+        unsigned offset = 0, change = 0, remaining = 0, ticks_while_disabled = 0;
+        while (offset < N) {
+            bool changed = false, seed_changed = false;
+            while (change < CHANGES && times[change] == offset) {
+                unsigned i = indices[change]; seed_changed |= i >= 20 && v[i] != changes[change];
+                v[i] = changes[change++]; changed = true;
+            }
+            if (seed_changed) { reset_generators(&macro, v); remaining = 0; }
+            if (changed) macro_params(core, &macro, v);
+            unsigned size = (change < CHANGES ? times[change] : N) - offset;
+            if (v[13] == 0) {
+                if (v[14] != 0) {
+                    if (!remaining) {
+                        rs_magnetic_macro_tick(&macro, rate, v[17], v[18], v[15], v[19]);
+                        macro_params(core, &macro, v); remaining = 64;
+                        if (v[12] == 0) ++ticks_while_disabled;
+                    }
+                    if (size > remaining) size = remaining;
+                }
+                retro_magnetic_process(core, expected[0] + offset, expected[1] + offset, size);
+                if (v[14] != 0) remaining -= size;
+            }
+            offset += size;
+        }
+        assert(ticks_while_disabled > 0);
+        retro_magnetic_destroy(core);
+        if (pass) memcpy(output, input, sizeof(output));
+        const unsigned lengths[] = {1,7,63,65,127,511}; offset = 0; unsigned block = 0;
+        while (offset < N) {
+            unsigned size = pass ? lengths[block++ % 6] : MAX_BLOCK;
+            if (size > N - offset) size = N - offset;
+            events e = {0};
+            for (unsigned i = 0; i < CHANGES; ++i)
+                if (times[i] >= offset && times[i] < offset + size)
+                    e.events[e.count++] = make_event(indices[i], changes[i], times[i] - offset);
+            /* Reverse each equal-offset group on the second pass. Seed and
+               macro changes must be applied as one settled event group. */
+            if (pass) for (unsigned first = 0; first < e.count;) {
+                unsigned last = first + 1;
+                while (last < e.count && e.events[last].header.time == e.events[first].header.time) ++last;
+                for (unsigned i = first, j = last - 1; i < j; ++i, --j) {
+                    clap_event_param_value_t swap = e.events[i]; e.events[i] = e.events[j]; e.events[j] = swap;
+                }
+                first = last;
+            }
+            clap_input_events_t in_events = {.ctx = &e, .size = event_count, .get = event_get};
+            float *ins[] = {pass ? output[0] + offset : input[0] + offset,
+                           pass ? output[1] + offset : input[1] + offset};
+            float *outs[] = {output[0] + offset, output[1] + offset};
+            clap_audio_buffer_t audio_in = {.data32 = ins, .channel_count = 2};
+            clap_audio_buffer_t audio_out = {.data32 = outs, .channel_count = 2};
+            clap_process_t process = {.frames_count = size, .audio_inputs = &audio_in, .audio_outputs = &audio_out,
+                .audio_inputs_count = 1, .audio_outputs_count = 1, .in_events = &in_events};
+            assert(plugin->process(plugin, &process) != CLAP_PROCESS_ERROR); offset += size;
+        }
+        assert(memcmp(output, expected, sizeof(output)) == 0);
+        if (pass) assert(memcmp(output, previous, sizeof(output)) == 0);
+        else memcpy(previous, output, sizeof(output));
+        plugin->stop_processing(plugin); plugin->deactivate(plugin);
+    }
+}
+
 int main(int argc, char **argv) {
     assert(argc == 2);
     void *library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
@@ -191,7 +302,8 @@ int main(int argc, char **argv) {
     assert(!p->activate(p, 1536001, 1, MAX_BLOCK));
     const float rates[] = {48000, 96000, 1000, 384000, 44100};
     for (unsigned i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i) check_render(p, rates[i]);
+    check_macro_render(p, 44100); check_macro_render(p, 48000); check_macro_render(p, 96000);
     p->destroy(p); entry->deinit(); assert(dlclose(library) == 0);
-    puts("Magnetic CLAP ABI, state, reset, in-place partitions and sample-offset automation passed");
+    puts("Magnetic CLAP ABI, state migration, reset, direct/macro partitions and sample-offset automation passed");
     return 0;
 }

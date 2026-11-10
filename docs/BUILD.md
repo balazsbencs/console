@@ -165,13 +165,19 @@ To reproduce the settled Wobble macro/native comparison:
 python3 tools/compare_native_wobble_macro.py --library build-release/libretro_dsp.so
 ```
 
-Magnetic 0.1.0 is a third independent module. It exposes the recovered periodic
-gain, wear/pan and dropout kernel with direct modulation inputs. Its 14 controls
-use IDs 3000–3013; Rate maps normalized 0/.5/1 to 6/20/30 Hz. Front-panel macro
-mapping and four free-running noise generators are the next Magnetic milestone.
+Magnetic 0.2.0 exposes the recovered periodic gain, wear/pan and dropout kernel
+with direct inputs plus Amount/Balance/Magnitude/Flux/Dropouts macro mode and
+four free-running generators. It retains IDs 3000–3013 and adds 3014–3023. Rate
+maps normalized 0/.5/1 to 6/20/30 Hz. Control Mode defaults to 0 (direct); mode 1
+uses the recovered mappings. Four seed controls default to study seeds 0/1/2/3
+because original production relation indices are unresolved. Enable keeps the
+generators advancing; Bypass freezes them; direct mode pauses their clock.
+See [macro controls and lifecycle](re/magnetic-macro-integration.md).
 See [Magnetic implementation and controls](re/magnetic-implementation.md) for
 ranges, threshold automation safeguards, reset semantics and fidelity limits.
 
 ```sh
 python3 tools/compare_native_magnetic.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_fromto_knob.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_magnetic_macro.py --library build-release/libretro_dsp.so
 ```
