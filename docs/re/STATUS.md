@@ -1,6 +1,6 @@
 # RC-20 reconstruction status
 
-## Digital 0.3.0 and Wobble 0.2.0
+## Digital 0.3.0, Wobble 0.2.0 and Magnetic 0.1.0
 
 The C11 Digital engine and Linux CLAP now implement the recovered `cBitColor`
 stereo path with both Focus and Cut modes, native decreasing Fit3 curves,
@@ -78,7 +78,14 @@ original model timing remain open. See [Wobble implementation](wobble-implementa
 [macro integration](wobble-macro-integration.md) and
 [wobble-validation.json](wobble-validation.json).
 
-GitHub Actions builds both Linux modules and universal arm64/x86_64 macOS
+Magnetic now has an independent C kernel and CLAP with direct modulation
+inputs. Its periodic gain, wear/pan and dropout paths match 76 native scenarios /
+6,619,136 samples with zero error under GCC and Clang;
+front-panel macros and four free-running noise generators remain pending. See
+[Magnetic implementation](magnetic-implementation.md) and
+[validation](magnetic-validation.json).
+
+GitHub Actions builds all three Linux modules and universal arm64/x86_64 macOS
 bundles. Host tests run on the CI runner architecture; the workflow verifies
 both Mach-O slices and preserves bundle structure in uploaded ZIPs. The
 complete RC-20 chain remains pending.
@@ -97,7 +104,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | Distortion | cPlugChain + cGain blend | Chain configuration recovered; DSP pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
 | Space | cResoX | Graph recovered; DSP pending |
-| Magnetic | cFlutter | Native symbols located; DSP pending |
+| Magnetic | cFlutter | Stereo kernel and direct-control CLAP native-tested; macros/noise generators pending |
 | Global | cPlugChain filters/tone + cStereoWidth + graph gains | Graph recovered; DSP pending |
 
 The binary also contains generic `cSampleDegrader` and `cSimpleReverb` blocks.
@@ -162,8 +169,8 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Port Magnetic; then the
-   distortion chain, cResoX Space and Noise/sample paths.
+3. Connect Magnetic macro controls and its four free-running noise generators;
+   then port the distortion chain, cResoX Space and Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a

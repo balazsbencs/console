@@ -1,4 +1,4 @@
-# Build the Digital and Wobble CLAP modules
+# Build the Digital, Wobble and Magnetic CLAP modules
 
 This milestone implements the **stereo Digital DSP**, including Focus/Cut,
 internal modulation, normalized curves, Amount/Balance/Magnitude mapping and
@@ -15,7 +15,7 @@ production seed indices and full original notification timing remain open.
 See [Wobble fidelity notes](re/wobble-implementation.md) and
 [macro controls](re/wobble-macro-integration.md).
 
-The GitHub Actions workflow builds both plugins on Linux and macOS. The macOS
+The GitHub Actions workflow builds all three plugins on Linux and macOS. The macOS
 job builds universal **arm64 + x86_64** bundles, runs host tests, verifies both
 slices and bundle metadata, and uploads ZIPs preserving the `.clap` bundles.
 Download them from the `RetroStudy-macOS-universal` artifact on a successful
@@ -31,7 +31,8 @@ ctest --test-dir build-release --output-on-failure
 ```
 
 The modules are `build-release/RetroStudyDigital.clap` and
-`build-release/RetroStudyWobble.clap`. They are self-contained apart
+`build-release/RetroStudyWobble.clap`, plus
+`build-release/RetroStudyMagnetic.clap`. They are self-contained apart
 from the system C/math libraries; neither loads the original plugin or its
 resource packs. Load it through a CLAP host's scan path and use the host's
 generic parameter editor. No custom editor is implemented.
@@ -138,7 +139,7 @@ ctest --test-dir build-release --output-on-failure
 ```
 
 On macOS each `.clap` is a bundle directory containing `Contents/Info.plist`
-and `Contents/MacOS/RetroStudyDigital` or `RetroStudyWobble`. Copy the entire
+and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble` or `RetroStudyMagnetic`. Copy the entire
 bundle into `~/Library/Audio/Plug-Ins/CLAP/`. CI artifacts are unsigned and
 unnotarized. macOS may require local authorization to load a downloaded bundle.
 
@@ -162,4 +163,15 @@ To reproduce the settled Wobble macro/native comparison:
 
 ```sh
 python3 tools/compare_native_wobble_macro.py --library build-release/libretro_dsp.so
+```
+
+Magnetic 0.1.0 is a third independent module. It exposes the recovered periodic
+gain, wear/pan and dropout kernel with direct modulation inputs. Its 14 controls
+use IDs 3000–3013; Rate maps normalized 0/.5/1 to 6/20/30 Hz. Front-panel macro
+mapping and four free-running noise generators are the next Magnetic milestone.
+See [Magnetic implementation and controls](re/magnetic-implementation.md) for
+ranges, threshold automation safeguards, reset semantics and fidelity limits.
+
+```sh
+python3 tools/compare_native_magnetic.py --library build-release/libretro_dsp.so
 ```
