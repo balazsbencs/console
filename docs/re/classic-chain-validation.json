@@ -1,0 +1,242 @@
+{
+  "milestone": "Drive Cores 0.5.0 Classic Chain: resource EQ/gain paths, mappings and settled seeded Flux",
+  "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "native_chain_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Original Classic/BiQuad/Gain/Noise/parameter mapping kernels with settled external routing adapter",
+      "counts": {
+        "scenarios": 72,
+        "ticks": 9216,
+        "audio_samples": 1179648,
+        "target_values": 193536,
+        "noise_state_bytes": 368640
+      },
+      "max_audio_error": 0,
+      "max_target_error": 0,
+      "noise_state_bit_exact": true,
+      "limitations": [
+        "No original constructor/graph scheduler/connection interpolation",
+        "Explicit study seeds; production relation indices unknown",
+        "Inactive histories freeze; controls latch per64frames",
+        "Linux x86 math and SSE; ARM bit identity unverified"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Original Classic/BiQuad/Gain/Noise/parameter mapping kernels with settled external routing adapter",
+      "counts": {
+        "scenarios": 72,
+        "ticks": 9216,
+        "audio_samples": 1179648,
+        "target_values": 193536,
+        "noise_state_bytes": 368640
+      },
+      "max_audio_error": 0,
+      "max_target_error": 0,
+      "noise_state_bit_exact": true,
+      "limitations": [
+        "No original constructor/graph scheduler/connection interpolation",
+        "Explicit study seeds; production relation indices unknown",
+        "Inactive histories freeze; controls latch per64frames",
+        "Linux x86 math and SSE; ARM bit identity unverified"
+      ]
+    }
+  },
+  "native_peak_eq_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Original peak type4 UpdatePrivates/ResetAudio/SoftReset/Process64, synthetic160byteobject, atomic physical control batches",
+      "scenarios": 128,
+      "samples": 4194304,
+      "state_bytes": 5242880,
+      "max_error": 0,
+      "state_bit_exact": true,
+      "sample_rates": [
+        1000,
+        8000,
+        44100,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "controls": [
+        [
+          900,
+          0.4,
+          12
+        ],
+        [
+          900,
+          0.4,
+          -12
+        ],
+        [
+          850,
+          0.2,
+          16
+        ],
+        [
+          850,
+          0.2,
+          -16
+        ],
+        [
+          20,
+          0.1,
+          0
+        ],
+        [
+          20000,
+          10,
+          24
+        ],
+        [
+          900,
+          10000,
+          100
+        ],
+        [
+          850,
+          0.01,
+          -100
+        ]
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "Original silence shortcut disabled",
+        "No full plugin or original constructor",
+        "Atomic changed control batch; separate parameter notifications not simulated",
+        "Linux libm for original and C"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scope": "Original peak type4 UpdatePrivates/ResetAudio/SoftReset/Process64, synthetic160byteobject, atomic physical control batches",
+      "scenarios": 128,
+      "samples": 4194304,
+      "state_bytes": 5242880,
+      "max_error": 0,
+      "state_bit_exact": true,
+      "sample_rates": [
+        1000,
+        8000,
+        44100,
+        48000,
+        48001,
+        96000,
+        192000,
+        1536000
+      ],
+      "controls": [
+        [
+          900,
+          0.4,
+          12
+        ],
+        [
+          900,
+          0.4,
+          -12
+        ],
+        [
+          850,
+          0.2,
+          16
+        ],
+        [
+          850,
+          0.2,
+          -16
+        ],
+        [
+          20,
+          0.1,
+          0
+        ],
+        [
+          20000,
+          10,
+          24
+        ],
+        [
+          900,
+          10000,
+          100
+        ],
+        [
+          850,
+          0.01,
+          -100
+        ]
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "Original silence shortcut disabled",
+        "No full plugin or original constructor",
+        "Atomic changed control batch; separate parameter notifications not simulated",
+        "Linux libm for original and C"
+      ]
+    }
+  },
+  "checks": {
+    "gcc_release": "5/5 CTests passed",
+    "clang19_release": "5/5 CTests passed",
+    "asan_ubsan": "5/5 CTests passed",
+    "host_samples_per_run": 1228800,
+    "classic_chain_contract_cases": 24,
+    "clap_controls": 15,
+    "state_version": 5,
+    "old_state_migrations": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "clap_validator": {
+    "version": "0.4.1-127-g152b982",
+    "jobs": 1,
+    "counts": {
+      "success": 33,
+      "skipped": 11
+    },
+    "denormal_test": [
+      {
+        "code": "success",
+        "details": "The plugin took 1.56x longer to process denormals"
+      }
+    ]
+  },
+  "source_sha256": {
+    "src/dsp/classic_chain.c": "54f92f396ef3e15c18f069313e67173e8a548b54e3495f1b67cf2918b8003fcc",
+    "src/dsp/classic_chain.h": "9540dde1905a8dba77782e74c31b0f18578206dc5ea8865e3788f58b8d98e70d",
+    "src/dsp/peak_eq.c": "3d3feae0c426361096da0677ef408db9a44acc0740952b605bdaf59fe533f767",
+    "src/dsp/peak_eq.h": "61f98a28f55af2790e90bde7a46eeb6227a7dc48b74509f609fd5a9f50ef577e",
+    "src/clap/drive_plugin.c": "40550026d47f96278b0a4182554b2ece68cea0d262dd32cdb943b64aa8c6cadc",
+    "tests/drive_host.c": "3fcad418d1adb790bd0a4d60dba3bb462fd90c232796e87f908e499d1f7d6848",
+    "tests/dsp_test.c": "132a17fc0b3e1319db7965ad351017af34d758a84f5084a7a934478f7ccb7f05"
+  },
+  "limits": [
+    "Settled external routing; original graph interpolation, notification/boot timing and sum order remain open",
+    "Explicit study seed0; production relation index unresolved",
+    "Linux native fixtures use Linux libm and x86 SSE; no ARM bit identity claim",
+    "No original constructors, resource scripts or full plugin host executed"
+  ]
+}

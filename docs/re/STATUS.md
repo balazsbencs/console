@@ -87,7 +87,7 @@ Clang. Production seeds and original model timing remain open. See
 [macro integration](magnetic-macro-integration.md) and
 [validation](magnetic-validation.json).
 
-Drive Cores 0.4.0 exposes the recovered Tube Pair, Air Pressure and Iron
+Drive Cores 0.5.0 exposes the recovered Tube Pair, Air Pressure and Iron
 Transformer numerical cores. Across 187 scenarios / 1,040,384 samples per
 compiler, outputs match the isolated native cores with zero error under GCC
 and Clang. Processor mode now adds the recovered stereo frequency split,
@@ -97,8 +97,10 @@ internal oversampling stage. Chain mode now adds the three-character gain stages
 routing with independent engine histories. See [Chain integration](dist-chain-integration.md).
 Classic mode now adds the recovered Crunch/Heavy/Zap single-band processors,
 including focus filters, output lowpass, band gains, Mix and Reference Level.
-Their original preset EQ/gain chains and complete host graph timing remain
-pending. See [Classic implementation](classic-implementation.md).
+Classic Chain mode adds their recovered preset EQ/gain paths and seeded Flux
+with settled 64-frame routing. Original complete host graph timing remains
+pending. See [Classic implementation](classic-implementation.md) and
+[Classic chains](classic-chain-integration.md).
 See [Drive Cores implementation](drive-cores-implementation.md) and
 [validation](drive-cores-validation.json).
 
@@ -118,7 +120,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | --- | --- | --- |
 | Noise | cNoiseFX + cSimpleComp, pre/post routing | Graph recovered; DSP pending |
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
-| Distortion | cPlugChain + cGain blend | Three Magic chains and three Classic processors; Classic preset EQ/gain chains and original graph timing pending |
+| Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
 | Space | cResoX | Graph recovered; DSP pending |
 | Magnetic | cFlutter | Stereo kernel and four-generator macro graph native-tested; original model timing pending |
@@ -186,8 +188,7 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Integrate the classic Distortion preset EQ/gain chains and match complete original graph
-   transition timing. Port cResoX Space and Noise/sample paths.
+3. Match complete original Distortion graph transition timing. Port cResoX Space and Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a

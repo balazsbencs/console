@@ -1,5 +1,6 @@
 #include "bitcolor.h"
 #include "classic.h"
+#include "classic_chain.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -81,6 +82,50 @@ static void check_classic_contract(unsigned character,float rate,int crossed) {
     retro_classic_destroy(a);retro_classic_destroy(b);
 }
 
+static void check_classic_chain_contract(unsigned character,float rate,int crossed) {
+    enum {N=4096};
+    retro_classic_chain *a=retro_classic_chain_create(),*b=retro_classic_chain_create();assert(a && b);
+    retro_classic_chain_params p=retro_classic_chain_defaults();
+    p.amount=.73f;p.character=(float)character;p.mix=.64f;p.magnitude=.68f;p.flux=.91f;p.seed=123;
+    p.low_hz=crossed?9000:220;p.high_hz=crossed?700:6500;
+    assert(retro_classic_chain_set(a,&p) && retro_classic_chain_set(b,&p));
+    assert(retro_classic_chain_prepare(a,rate) && retro_classic_chain_prepare(b,rate));
+    assert(!retro_classic_chain_set(a,NULL) && !retro_classic_chain_set(NULL,&p));
+    const float invalid_rates[]={NAN,INFINITY,999,1536001};
+    for(unsigned i=0;i<sizeof(invalid_rates)/sizeof(*invalid_rates);++i)
+        assert(!retro_classic_chain_prepare(a,invalid_rates[i]));
+    float input[2][N],whole[2][N],split[2][N];
+    for(unsigned i=0;i<N;++i) {
+        input[0][i]=.6f*(float)sin(i*.071);input[1][i]=.4f*(float)cos(i*.093);
+    }
+    memcpy(whole,input,sizeof(whole));memcpy(split,input,sizeof(split));
+    retro_classic_chain_process(a,whole[0],whole[1],N);
+    const unsigned lengths[]={1,7,63,64,65,127,511};unsigned offset=0,block=0;
+    while(offset<N) {
+        if(offset)for(unsigned field=0;field<9;++field) {
+            retro_classic_chain_params invalid=p;
+            if(field==0)invalid.amount=NAN;
+            else if(field==1)invalid.character=.5f;
+            else if(field==2)invalid.mix=1.1f;
+            else if(field==3)invalid.magnitude=-1;
+            else if(field==4)invalid.flux=INFINITY;
+            else if(field==5)invalid.seed=.5f;
+            else if(field==6)invalid.low_hz=19;
+            else if(field==7)invalid.high_hz=20001;
+            else invalid.enable=.5f;
+            assert(!retro_classic_chain_set(b,&invalid));
+        }
+        unsigned size=lengths[block++%7];if(size>N-offset)size=N-offset;
+        retro_classic_chain_process(b,split[0]+offset,split[1]+offset,size);offset+=size;
+    }
+    assert(memcmp(whole,split,sizeof(whole))==0);
+    for(unsigned c=0;c<2;++c)for(unsigned i=0;i<N;++i)assert(isfinite(whole[c][i]));
+    retro_classic_chain_reset(b);memcpy(split,input,sizeof(split));
+    retro_classic_chain_process(b,split[0],split[1],N);
+    assert(memcmp(whole,split,sizeof(whole))==0);
+    retro_classic_chain_destroy(a);retro_classic_chain_destroy(b);
+}
+
 int main(void) {
     retro_digital_params p = retro_digital_defaults();
     p.smooth = 0.67f; p.feedback = 0.81f; p.rate = 127.0f;
@@ -95,7 +140,10 @@ int main(void) {
     const float classic_rates[]={1000,44100,96000,384000};
     for(unsigned r=0;r<sizeof(classic_rates)/sizeof(*classic_rates);++r)
         for(unsigned character=0;character<3;++character)
-            for(int crossed=0;crossed<2;++crossed)check_classic_contract(character,classic_rates[r],crossed);
+            for(int crossed=0;crossed<2;++crossed) {
+                check_classic_contract(character,classic_rates[r],crossed);
+                check_classic_chain_contract(character,classic_rates[r],crossed);
+            }
     puts("DSP block partitioning, reset, in-place rendering and invalid controls passed");
     return 0;
 }

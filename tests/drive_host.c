@@ -2,6 +2,7 @@
 #include "drive.h"
 #include "dist_chain.h"
 #include "classic.h"
+#include "classic_chain.h"
 #include <assert.h>
 #include <dlfcn.h>
 #include <math.h>
@@ -76,7 +77,7 @@ static void check_state(const clap_plugin_t *p) {
     memory m = {0}; clap_ostream_t out = {.ctx = &m, .write = write_state};
     clap_istream_t in = {.ctx = &m, .read = read_state};
     assert(state->save(p, &out)); assert(m.size == 12 + PARAM_COUNT * 8);
-    assert(!memcmp(m.data, "RSDC", 4) && m.data[4]==4 && m.data[8]==PARAM_COUNT);
+    assert(!memcmp(m.data, "RSDC", 4) && m.data[4]==5 && m.data[8]==PARAM_COUNT);
     set_values(p, defaults);
     --m.size; assert(!state->load(p, &in)); check_values(p, defaults);
     ++m.size; m.cursor = 0; assert(state->load(p, &in)); check_values(p, settings);
@@ -87,8 +88,8 @@ static void check_state(const clap_plugin_t *p) {
     assert(state->load(p, &in)); check_values(p, settings);
     /* Old states default controls added after each original state version,
        even after nondefault processor and Chain controls have been loaded. */
-    for (unsigned version=1;version<=3;++version) {
-        unsigned count=version==1?5:version==2?11:14;
+    for (unsigned version=1;version<=4;++version) {
+        unsigned count=version==1?5:version==2?11:version==3?14:15;
         set_values(p,settings);
         m.data[4]=(unsigned char)version;m.data[8]=(unsigned char)count;
         m.size=12+count*8;m.cursor=0;assert(state->load(p,&in));
@@ -99,12 +100,13 @@ static void check_state(const clap_plugin_t *p) {
 }
 
 
-static void core_range(retro_drive *core, retro_dist_chain *chain, retro_classic *classic, const float *values, float input[2][FRAMES],
+static void core_range(retro_drive *core, retro_dist_chain *chain, retro_classic *classic, retro_classic_chain *classic_chain, const float *values, float input[2][FRAMES],
                        float output[2][FRAMES], unsigned first, unsigned last) {
     for (unsigned c=0;c<2;++c)
         memcpy(output[c]+first,input[c]+first,(last-first)*sizeof(float));
     if (values[4]==0) {
-        if(values[5]==3) {if(values[3]!=0) retro_classic_process(classic,output[0]+first,output[1]+first,last-first);}
+        if(values[5]==4) retro_classic_chain_process(classic_chain,output[0]+first,output[1]+first,last-first);
+        else if(values[5]==3) {if(values[3]!=0) retro_classic_process(classic,output[0]+first,output[1]+first,last-first);}
         else if(values[5]==2) retro_dist_chain_process(chain,output[0]+first,output[1]+first,last-first);
         else retro_drive_process(core,output[0]+first,output[1]+first,last-first);
     }
@@ -125,8 +127,8 @@ static void check_render(const clap_plugin_t *p, float rate, unsigned character,
         3,4,4,1,5,6,7,0,8,9,10,14,13,1,5,
         11,14,5,11,1,5,12,13,12,10};
     const float value[] = {.24f,.86f,0,(float)((character+1)%3),0,-18,12000,800,456,.75f,0,789,.8f,1,
-        1,1,0,(float)((character+2)%3),(float)((mode+1)%4),60,16000,.91f,4,-6,1700,-6,0,
-        (float)character,(float)mode,0,-24,(float)((mode+2)%4),1,(float)((character+1)%3),
+        1,1,0,(float)((character+2)%3),(float)((mode+1)%5),60,16000,.91f,4,-6,1700,-6,0,
+        (float)character,(float)mode,0,-24,(float)((mode+2)%5),1,(float)((character+1)%3),
         (float)mode,0,65535,.9f,19000};
     enum { CHANGES = sizeof(time) / sizeof(time[0]) };
     for (unsigned pass = 0; pass < 2; ++pass) {
@@ -143,6 +145,7 @@ static void check_render(const clap_plugin_t *p, float rate, unsigned character,
         retro_drive *core = retro_drive_create(); assert(core);
         retro_dist_chain *chain=retro_dist_chain_create();assert(chain);
         retro_classic *classic=retro_classic_create();assert(classic);
+        retro_classic_chain *classic_chain=retro_classic_chain_create();assert(classic_chain);
         float current[PARAM_COUNT]; memcpy(current, initial, sizeof(current));
         retro_drive_params cp = core_params(current);
         assert(retro_drive_set(core, &cp) && retro_drive_prepare(core, rate));
@@ -152,17 +155,20 @@ static void check_render(const clap_plugin_t *p, float rate, unsigned character,
         retro_dist_chain_reset(chain);
         retro_classic_params classic_p=classic_params(current);
         assert(retro_classic_set(classic,&classic_p) && retro_classic_prepare(classic,rate));retro_classic_reset(classic);
+        assert(retro_classic_chain_set(classic_chain,&chain_p) && retro_classic_chain_prepare(classic_chain,rate));
+        retro_classic_chain_reset(classic_chain);
         unsigned first = 0, change = 0;
         while (change < CHANGES) {
-            unsigned last = time[change]; core_range(core, chain, classic, current, input, expected, first, last);
+            unsigned last = time[change]; core_range(core, chain, classic, classic_chain, current, input, expected, first, last);
             do { current[index[change]] = value[change]; ++change; }
             while (change < CHANGES && time[change] == last);
             cp = core_params(current); assert(retro_drive_set(core, &cp));
             chain_p=chain_params(current);assert(retro_dist_chain_set(chain,&chain_p));
+            assert(retro_classic_chain_set(classic_chain,&chain_p));
             classic_p=classic_params(current);assert(retro_classic_set(classic,&classic_p));first = last;
         }
-        core_range(core, chain, classic, current, input, expected, first, FRAMES);
-        retro_drive_destroy(core);retro_dist_chain_destroy(chain);retro_classic_destroy(classic);
+        core_range(core, chain, classic, classic_chain, current, input, expected, first, FRAMES);
+        retro_drive_destroy(core);retro_dist_chain_destroy(chain);retro_classic_destroy(classic);retro_classic_chain_destroy(classic_chain);
         if (pass) memcpy(output, input, sizeof(output));
         const unsigned lengths[] = {1, 7, 63, 65, 127, 511};
         unsigned offset = 0, block = 0;
@@ -211,12 +217,12 @@ static void check_character_names(const clap_plugin_t *p) {
     const clap_plugin_params_t *params=p->get_extension(p,CLAP_EXT_PARAMS);
     const char *normal[]={"Tube Pair","Air Pressure","Iron Transformer"};
     const char *classic[]={"Crunch","Heavy","Zap"};
-    for(unsigned mode=0;mode<4;++mode) {
+    for(unsigned mode=0;mode<5;++mode) {
         float v[PARAM_COUNT];memcpy(v,defaults,sizeof(v));v[5]=(float)mode;set_values(p,v);
         for(unsigned c=0;c<3;++c) {
             char text[128];double parsed;
             assert(params->value_to_text(p,4001,c,text,sizeof(text)));
-            assert(strcmp(text,mode==3?classic[c]:normal[c])==0);
+            assert(strcmp(text,mode>=3?classic[c]:normal[c])==0);
             assert(params->text_to_value(p,4001,text,&parsed) && parsed==c);
         }
         const double references[]={-100,-18.25,0,100};
@@ -236,7 +242,7 @@ static void check_invalid_events(const clap_plugin_t *p) {
     set_values(p,defaults);
     events e={.count=25};
     const unsigned index[]={0,1,2,3,4,99,0,1,5,6,7,8,9,10,5,11,12,13,13,11,12,13,14,14,14};
-    const double value[]={NAN,.5,INFINITY,.5,.5,0,-1,3,.5,19,20001,101,-101,NAN,4,
+    const double value[]={NAN,.5,INFINITY,.5,.5,0,-1,3,.5,19,20001,101,-101,NAN,5,
         NAN,INFINITY,.5,65536,-1,1.1,-1,NAN,-101,101};
     for (unsigned i=0;i<e.count;++i) e.events[i]=make_event(index[i],value[i],0);
     clap_input_events_t in={.ctx=&e,.size=event_count,.get=event_get};
@@ -265,7 +271,7 @@ static void check_core_validation(unsigned mode) {
     }
     for (unsigned field=0;field<6;++field) {
         const float invalid[]={NAN,INFINITY,field==0?.5f:field<4?19.0f:-101.0f,
-            field==0?4.0f:field<4?20001.0f:101.0f};
+            field==0?5.0f:field<4?20001.0f:101.0f};
         for (unsigned i=0;i<sizeof(invalid)/sizeof(*invalid);++i) {
             retro_drive_params value=initial;
             if(field==0) value.processing_mode=invalid[i];
@@ -311,7 +317,7 @@ int main(int argc, char **argv) {
     assert(factory && factory->get_plugin_count(factory) == 1);
     const clap_plugin_descriptor_t *descriptor = factory->get_plugin_descriptor(factory, 0);
     assert(descriptor && !strcmp(descriptor->id, "local.retro-study.drive-cores"));
-    assert(!strcmp(descriptor->version,"0.4.0"));
+    assert(!strcmp(descriptor->version,"0.5.0"));
     assert(!factory->get_plugin_descriptor(factory, 1));
     assert(!factory->create_plugin(factory, &host, "invalid.id"));
     const clap_plugin_t *p = factory->create_plugin(factory, &host, descriptor->id);
@@ -335,14 +341,14 @@ int main(int argc, char **argv) {
         assert(params->text_to_value(p, info.id, text, &parsed));
         assert(fabs(parsed - info.default_value) < 1e-7);
     }
-    check_values(p, defaults); check_character_names(p); check_invalid_events(p); check_state(p); check_core_validation(0); check_core_validation(1); check_core_validation(2); check_core_validation(3);
+    check_values(p, defaults); check_character_names(p); check_invalid_events(p); check_state(p); check_core_validation(0); check_core_validation(1); check_core_validation(2); check_core_validation(3); check_core_validation(4);
     assert(!p->activate(p, 999, 1, MAX_BLOCK));
     assert(!p->activate(p, 1536001, 1, MAX_BLOCK));
     const float rates[] = {48000, 96000, 1000, 384000, 44100};
     for (unsigned i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i)
         for (unsigned character=0;character<3;++character)
-            for (unsigned mode=0;mode<4;++mode) check_render(p, rates[i], character, mode);
+            for (unsigned mode=0;mode<5;++mode) check_render(p, rates[i], character, mode);
     p->destroy(p); entry->deinit(); assert(dlclose(library) == 0);
-    puts("Drive Cores CLAP ABI, state migration, reset, Classic/Chain/processor/core partitions and sample-offset automation passed");
+    puts("Drive Cores CLAP ABI, state migration, reset, Classic Chain/Classic/Chain/processor/core partitions and sample-offset automation passed");
     return 0;
 }
