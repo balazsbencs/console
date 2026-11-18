@@ -104,7 +104,7 @@ pending. See [Classic implementation](classic-implementation.md) and
 See [Drive Cores implementation](drive-cores-implementation.md) and
 [validation](drive-cores-validation.json).
 
-GitHub Actions builds all four Linux modules and universal arm64/x86_64 macOS
+GitHub Actions builds all five Linux modules and universal arm64/x86_64 macOS
 bundles. Host tests run on the CI runner architecture; the workflow verifies
 both Mach-O slices and preserves bundle structure in uploaded ZIPs. The
 complete RC-20 chain remains pending.
@@ -122,7 +122,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
-| Space | cResoX | Graph recovered; DSP pending |
+| Space | cResoX | Stereo C processor and direct-control CLAP; macro/Flux and original model timing pending |
 | Magnetic | cFlutter | Stereo kernel and four-generator macro graph native-tested; original model timing pending |
 | Global | cPlugChain filters/tone + cStereoWidth + graph gains | Graph recovered; DSP pending |
 
@@ -188,10 +188,18 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Match complete original Distortion graph transition timing. Port cResoX Space and Noise/sample paths.
+3. Match complete original Distortion graph transition timing. Match Space macro/Flux wiring and port Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a
    real DAW smoke test. macOS CI now supplies universal builds and host tests.
    The supplied Windows DLL is extracted and hashed but
    has not been executed or cross-build matched.
+
+
+Space 0.1.0 adds the ResoX resonator/all-pass/predelay processor and a direct
+CLAP adapter, with physical control metadata recovered from the original
+constructor. See [Space implementation](space-implementation.md),
+[control findings](space-control-findings.md) and
+[validation](space-validation.json). Original Space macro/Flux and full graph
+scheduling remain open.

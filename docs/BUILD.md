@@ -15,7 +15,7 @@ production seed indices and full original notification timing remain open.
 See [Wobble fidelity notes](re/wobble-implementation.md) and
 [macro controls](re/wobble-macro-integration.md).
 
-The GitHub Actions workflow builds all four plugins on Linux and macOS. The macOS
+The GitHub Actions workflow builds all five plugins on Linux and macOS. The macOS
 job builds universal **arm64 + x86_64** bundles, runs host tests, verifies both
 slices and bundle metadata, and uploads ZIPs preserving the `.clap` bundles.
 Download them from the `RetroStudy-macOS-universal` artifact on a successful
@@ -33,8 +33,9 @@ ctest --test-dir build-release --output-on-failure
 The modules are `build-release/RetroStudyDigital.clap` and
 `build-release/RetroStudyWobble.clap`, plus
 `build-release/RetroStudyMagnetic.clap` and
-`build-release/RetroStudyDriveCores.clap`. They are self-contained apart
-from the system C/math libraries; neither loads the original plugin or its
+`build-release/RetroStudyDriveCores.clap` and
+`build-release/RetroStudySpace.clap`. They are self-contained apart
+from the system C/math libraries; none loads the original plugin or its
 resource packs. Load it through a CLAP host's scan path and use the host's
 generic parameter editor. No custom editor is implemented.
 
@@ -140,7 +141,7 @@ ctest --test-dir build-release --output-on-failure
 ```
 
 On macOS each `.clap` is a bundle directory containing `Contents/Info.plist`
-and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble`, `RetroStudyMagnetic` or `RetroStudyDriveCores`. Copy the entire
+and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble`, `RetroStudyMagnetic`, `RetroStudyDriveCores` or `RetroStudySpace`. Copy the entire
 bundle into `~/Library/Audio/Plug-Ins/CLAP/`. CI artifacts are unsigned and
 unnotarized. macOS may require local authorization to load a downloaded bundle.
 
@@ -224,4 +225,17 @@ python3 tools/compare_native_classic_split.py --library build-release/libretro_d
 python3 tools/compare_native_classic.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_peak_eq.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_classic_chain.py --library build-release/libretro_dsp.so
+```
+
+
+Retro Study Space 0.1.0 adds the recovered ResoX numerical processor as
+`RetroStudySpace.clap`. Its fifteen direct controls use IDs 5000–5014 and
+RSSP state version 1. This includes the native resonator/all-pass network,
+stereo modes, focus filters, predelay and manually supplied pre-wobble controls.
+The product macro/Flux model remains pending. Study bounds and reset behavior
+are described in [Space implementation](re/space-implementation.md).
+
+```sh
+python3 tools/compare_native_space_prepare.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_space.py --library build-release/libretro_dsp.so
 ```

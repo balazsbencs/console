@@ -1,0 +1,166 @@
+{
+  "milestone": "Space 0.1.0 direct ResoX numerical processor and CLAP",
+  "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+  "native_audio_state": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 110,
+      "samples": 1966080,
+      "state_bytes": 21835421840,
+      "max_error": 0,
+      "sample_rates": [
+        1000,
+        22050,
+        44100,
+        48000,
+        48001,
+        44117,
+        96000,
+        192000,
+        384000,
+        768000,
+        1536000
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "hard_reset_against_fresh_native": true,
+      "reset_smoothing_after_pending_control": true,
+      "long_run_384000_frames": 32768,
+      "long_run_1536000_frames": 65536,
+      "limitations": [
+        "Synthetic zero-filled allocation, no constructor or original plugin host",
+        "Visualization-only meters omitted and excluded from state comparison",
+        "Original active input marker always1; no native silence-tail optimization",
+        "Linux libm for original and C"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 110,
+      "samples": 1966080,
+      "state_bytes": 21835421840,
+      "max_error": 0,
+      "sample_rates": [
+        1000,
+        22050,
+        44100,
+        48000,
+        48001,
+        44117,
+        96000,
+        192000,
+        384000,
+        768000,
+        1536000
+      ],
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "hard_reset_against_fresh_native": true,
+      "reset_smoothing_after_pending_control": true,
+      "long_run_384000_frames": 32768,
+      "long_run_1536000_frames": 65536,
+      "limitations": [
+        "Synthetic zero-filled allocation, no constructor or original plugin host",
+        "Visualization-only meters omitted and excluded from state comparison",
+        "Original active input marker always1; no native silence-tail optimization",
+        "Linux libm for original and C"
+      ]
+    }
+  },
+  "native_prepare": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 27,
+      "numeric_setup_bit_exact": true,
+      "ring_lengths_positions_exact": true,
+      "limitations": [
+        "Clean zero-filled synthetic allocation",
+        "No original constructor or plugin host",
+        "Linux libm"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 27,
+      "numeric_setup_bit_exact": true,
+      "ring_lengths_positions_exact": true,
+      "limitations": [
+        "Clean zero-filled synthetic allocation",
+        "No original constructor or plugin host",
+        "Linux libm"
+      ]
+    }
+  },
+  "tests": {
+    "gcc_release": "6/6 CTests passed",
+    "clang19_release": "6/6 CTests passed",
+    "asan_ubsan": "6/6 CTests passed",
+    "space_host_rates": [
+      1000,
+      44100,
+      48000,
+      96000,
+      384000,
+      1536000
+    ],
+    "contracts": [
+      "stereo ABI",
+      "sample-offset events",
+      "fractional text conversions with integer publication checks",
+      "partial/invalid state streams",
+      "separate instances",
+      "in-place/irregular partitions",
+      "warm hard reset vs fresh",
+      "invalid control updates preserve history"
+    ]
+  },
+  "validator": {
+    "version": "0.4.1-127-g152b982",
+    "jobs": 1,
+    "counts": {
+      "success": 32,
+      "skipped": 11,
+      "warning": 1
+    },
+    "warnings": [
+      {
+        "code": "warning",
+        "details": "The plugin took 2.14x longer to process denormals, you should set flush-to-zero flags or avoid denormals in some other way."
+      }
+    ],
+    "focused_denormal_followup": [
+      {
+        "code": "success",
+        "details": "The plugin took 1.87x longer to process denormals"
+      }
+    ]
+  },
+  "source_sha256": {
+    "src/dsp/space.c": "6efb9739568d32f403a89292ba8bbf4d7dd453e12d810d003e6cb6d126ee5683",
+    "src/dsp/space_prepare.c": "467c84bb56b8153de63092304125517f8ebae11dacca7f41e39aa0af901eb02c",
+    "src/dsp/space.h": "5e71a3db5c2ccfc1d982b10f626f6d9023fdb4bfdb01a17b96d18968f229b9b8",
+    "src/dsp/space_internal.h": "9406a1eb33ca06a8ed70584e78f6752a5c42cc8b47e0fbcbbac80bb8c25601ac",
+    "src/clap/space_plugin.c": "5055f771fe4ed9e80bf00e11c024da41c4aabaef81a1c598cabf63ce65bbf22c",
+    "tests/space_host.c": "5a22f8c52cde5ffde008e4c69b0adea3742531671beacc783fe7cf0089304835"
+  },
+  "limits": [
+    "Direct controls only; original macro/Flux model and serialized seed identity pending",
+    "Synthetic state and deterministic zero-filled allocation; original constructor/host/scripts not executed",
+    "Active original input marker held1; silence optimization not established",
+    "Linux libm for native and C; no macOS math or original ARM reference identity claim",
+    "Visualization-only publication omitted; meter flag retained as study value",
+    "Full public reset is a stronger study rewind than native clearDelayLines/resetSmoothing"
+  ]
+}
