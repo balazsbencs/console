@@ -1,5 +1,6 @@
 #include <clap/clap.h>
 #include "space.h"
+#include "space_macro.h"
 #include <math.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -15,7 +16,7 @@ _Static_assert(sizeof(float) == 4, "State format requires 32-bit floats");
 
 enum { ENABLE, DECAY, DAMPEN, SOFTEN, LEVEL, STEREO_DETUNE, STEREO_MODE,
        DUAL_MONO, FEEDBACKS, ALLPASS, REVERB_MODE, PRE_DELAY, PRE_WOBBLE_NOISE,
-       PRE_WOBBLE_AMOUNT, BYPASS, PARAM_COUNT };
+       PRE_WOBBLE_AMOUNT, BYPASS, CONTROL_MODE, AMOUNT, MAGNITUDE, FLUX, FLUX_SEED, PARAM_COUNT };
 typedef struct { const char *name; float low, high, initial; } parameter;
 static const parameter parameters[PARAM_COUNT] = {
     {"Enable",0,1,1}, {"Decay",0,1,.8f},
@@ -25,15 +26,16 @@ static const parameter parameters[PARAM_COUNT] = {
     {"Meter Feedback (Study)",0,1,1}, {"Allpass (Study)",0,1,1},
     {"Reverb Mode (Study)",0,1,1}, {"Pre Delay",0,100,.01f},
     {"Pre Wobble Noise",-1,1,0}, {"Pre Wobble Amount",0,1,0},
-    {"Bypass",0,1,0},
+    {"Bypass",0,1,0}, {"Control Mode",0,1,0}, {"Amount",0,1,0},
+    {"Magnitude",0,1,1}, {"Flux",0,1,0}, {"Flux Seed",0,65535,0},
 };
 static const char *const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
     CLAP_PLUGIN_FEATURE_REVERB, CLAP_PLUGIN_FEATURE_STEREO, NULL};
 static const clap_plugin_descriptor_t descriptor = {
     .clap_version = CLAP_VERSION_INIT, .id = "local.retro-study.space",
     .name = "Retro Study Space", .vendor = "Retro Study", .url = "",
-    .manual_url = "", .support_url = "", .version = "0.1.0",
-    .description = "Recovered Space kernel with direct physical controls. Original front-panel macros and Flux are not included.",
+    .manual_url = "", .support_url = "", .version = "0.2.0",
+    .description = "Recovered Space kernel with direct controls and Amount/Magnitude/Flux mappings. Explicit study seed; original model timing remains pending.",
     .features = features,
 };
 typedef struct {
@@ -43,6 +45,9 @@ typedef struct {
     atomic_uint values[PARAM_COUNT];
     float applied[PARAM_COUNT];
     retro_space *dsp;
+    rs_space_macro macro;
+    float sample_rate;
+    uint32_t macro_remaining;
     bool active, processing;
     uint32_t max_frames;
 } instance;
@@ -54,7 +59,7 @@ static float value_at(const instance *s, unsigned index) {
     return bits_float(atomic_load_explicit(&s->values[index], memory_order_relaxed));
 }
 static bool stepped(unsigned i) { return i == BYPASS || i == ENABLE || i == STEREO_MODE ||
-    i == DUAL_MONO || i == FEEDBACKS || i == ALLPASS || i == REVERB_MODE; }
+    i == DUAL_MONO || i == FEEDBACKS || i == ALLPASS || i == REVERB_MODE || i == CONTROL_MODE || i == FLUX_SEED; }
 static bool valid_value(unsigned i, double value) {
     return i < PARAM_COUNT && isfinite(value) && value >= parameters[i].low && value <= parameters[i].high
         && (!stepped(i) || value == floor(value));
@@ -67,13 +72,22 @@ static void apply_dsp_values(instance *s) {
         .stereo_mode=v[STEREO_MODE], .dual_mono=v[DUAL_MONO], .feedbacks=v[FEEDBACKS],
         .allpass=v[ALLPASS], .reverb_mode=v[REVERB_MODE], .pre_delay_ms=v[PRE_DELAY],
         .pre_wobble_noise=v[PRE_WOBBLE_NOISE], .pre_wobble_amount=v[PRE_WOBBLE_AMOUNT]};
+    if(v[CONTROL_MODE]>=.5f)
+        rs_space_macro_apply(&s->macro,v[MAGNITUDE],v[AMOUNT],v[FLUX],&p);
     (void)retro_space_set(s->dsp, &p);
+}
+static void reset_macro(instance *s) {
+    rs_space_macro_reset(&s->macro,(int32_t)s->applied[FLUX_SEED]);
+    s->macro_remaining=0;
 }
 static void apply_values(instance *s) {
     float v[PARAM_COUNT];
     for (unsigned i=0; i<PARAM_COUNT; ++i) v[i]=value_at(s,i);
     if (!memcmp(v,s->applied,sizeof(v))) return;
-    memcpy(s->applied,v,sizeof(v)); apply_dsp_values(s);
+    bool changed_seed=v[FLUX_SEED]!=s->applied[FLUX_SEED];
+    memcpy(s->applied,v,sizeof(v));
+    if(changed_seed) reset_macro(s);
+    apply_dsp_values(s);
 }
 static bool CLAP_ABI plugin_init(const clap_plugin_t *plugin) {
     instance *s = self(plugin);
@@ -87,8 +101,9 @@ static bool CLAP_ABI activate(const clap_plugin_t *plugin, double rate, uint32_t
     instance *s = self(plugin);
     if (s->active || !isfinite(rate) || rate < 1000 || rate > 1536000 ||
         min_frames < 1 || min_frames > max_frames || max_frames > INT32_MAX) return false;
-    apply_values(s); apply_dsp_values(s);
+    apply_values(s); reset_macro(s); apply_dsp_values(s);
     if (!retro_space_prepare(s->dsp, (float)rate)) return false;
+    s->sample_rate=(float)rate;
     s->active = true; s->max_frames = max_frames;
     return true;
 }
@@ -100,7 +115,7 @@ static bool CLAP_ABI start(const clap_plugin_t *plugin) {
 }
 static void CLAP_ABI stop(const clap_plugin_t *plugin) { self(plugin)->processing = false; }
 static void CLAP_ABI reset(const clap_plugin_t *plugin) {
-    instance *s = self(plugin); apply_values(s); apply_dsp_values(s); retro_space_reset(s->dsp);
+    instance *s = self(plugin); apply_values(s); reset_macro(s); apply_dsp_values(s); retro_space_reset(s->dsp);
 }
 static void accept_event(instance *s, const clap_event_header_t *header) {
     if (!header || header->space_id != CLAP_CORE_EVENT_SPACE_ID || header->type != CLAP_EVENT_PARAM_VALUE ||
@@ -121,7 +136,19 @@ static void process_range(instance *s, const clap_process_t *p, uint32_t first, 
     }
     for (unsigned c=0;c<2;++c)
         if (in[c] != out[c]) memmove(out[c]+first,in[c]+first,(last-first)*sizeof(float));
-    retro_space_process(s->dsp,out[0]+first,out[1]+first,last-first);
+    /* FreeRunning is independent of mode, Enable and macro scalers. */
+    while(first<last) {
+        if(!s->macro_remaining) {
+            rs_space_macro_tick(&s->macro,s->sample_rate);
+            if (s->applied[CONTROL_MODE] == 1) apply_dsp_values(s);
+            s->macro_remaining = 64;
+        }
+        uint32_t count=last-first;
+        if(count>s->macro_remaining) count=s->macro_remaining;
+        retro_space_process(s->dsp,out[0]+first,out[1]+first,count);
+        s->macro_remaining -= count;
+        first += count;
+    }
 }
 static clap_process_status CLAP_ABI process(const clap_plugin_t *plugin, const clap_process_t *p) {
     instance *s = self(plugin);
@@ -187,12 +214,17 @@ static bool CLAP_ABI param_text(const clap_plugin_t *p, clap_id id, double value
     (void)p; int i = index_for(id);
     if (i < 0 || !text || capacity == 0 || !isfinite(value) ||
         (value<parameters[i].low || value>parameters[i].high)) return false;
-    int n = snprintf(text, capacity, "%.9g", value);
+    int n = i==CONTROL_MODE && valid_value(CONTROL_MODE,value) ? snprintf(text,capacity,"%s",value<.5?"Direct":"Macro") :
+        snprintf(text, capacity, "%.9g", value);
     return n >= 0 && (uint32_t)n < capacity;
 }
 static bool CLAP_ABI param_parse(const clap_plugin_t *p, clap_id id, const char *text, double *value) {
     (void)p; int i = index_for(id);
     if (i < 0 || !text || !value) return false;
+    if(i==CONTROL_MODE) {
+        if(!strcmp(text,"Direct")) {*value=0;return true;}
+        if(!strcmp(text,"Macro")) {*value=1;return true;}
+    }
     char *end; double parsed = strtod(text, &end);
     float rounded = (float)parsed;
     if (end == text || *end || !isfinite(parsed) || !isfinite(rounded) ||
@@ -215,7 +247,7 @@ static uint32_t decode32(const unsigned char *in) {
 enum { STATE_SIZE = 12 + PARAM_COUNT * 8 };
 static bool CLAP_ABI save_state(const clap_plugin_t *p, const clap_ostream_t *stream) {
     unsigned char data[STATE_SIZE]; memcpy(data, "RSSP", 4);
-    encode32(data + 4, 1); encode32(data + 8, PARAM_COUNT);
+    encode32(data + 4, 2); encode32(data + 8, PARAM_COUNT);
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         encode32(data + 12 + i * 8, 5000 + i);
         encode32(data + 16 + i * 8, float_bits(value_at(self(p), i)));
@@ -236,7 +268,7 @@ static bool CLAP_ABI load_state(const clap_plugin_t *p, const clap_istream_t *st
         offset += (size_t)n;
     }
     uint32_t version = decode32(data + 4), count = decode32(data + 8);
-    if (memcmp(data, "RSSP", 4) || !(version == 1 && count == PARAM_COUNT)) return false;
+    if (memcmp(data, "RSSP", 4) || !((version == 1 && count == 15) || (version == 2 && count == PARAM_COUNT))) return false;
     size_t size = 12 + count * 8;
     while (offset < size) {
         int64_t n = stream->read(stream, data + offset, size - offset);
@@ -284,7 +316,7 @@ static const clap_plugin_t *CLAP_ABI factory_create(const clap_plugin_factory_t 
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         atomic_init(&s->values[i], float_bits(parameters[i].initial)); s->applied[i] = parameters[i].initial;
     }
-    apply_dsp_values(s);
+    reset_macro(s);apply_dsp_values(s);
     s->plugin = (clap_plugin_t){.desc = &descriptor, .plugin_data = s, .init = plugin_init,
         .destroy = destroy, .activate = activate, .deactivate = deactivate, .start_processing = start,
         .stop_processing = stop, .reset = reset, .process = process, .get_extension = extension, .on_main_thread = on_main};

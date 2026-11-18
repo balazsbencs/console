@@ -1,5 +1,6 @@
 #include <clap/clap.h>
 #include "space.h"
+#include "space_macro.h"
 #include <assert.h>
 #include <dlfcn.h>
 #include <math.h>
@@ -9,9 +10,9 @@
 #include <xmmintrin.h>
 #endif
 
-enum { PARAM_COUNT = 15, FRAMES = 4096, MAX_BLOCK = 512 };
-static const float defaults[PARAM_COUNT]={1,.8f,0,22050,.15f,0,0,0,1,1,1,.01f,0,0,0};
-static const float settings[PARAM_COUNT]={1,.73f,7300,11500,.41f,.36f,1,0,1,1,1,17,.31f,.22f,0};
+enum { PARAM_COUNT = 20, FRAMES = 4096, MAX_BLOCK = 512 };
+static const float defaults[PARAM_COUNT]={1,.8f,0,22050,.15f,0,0,0,1,1,1,.01f,0,0,0,0,0,1,0,0};
+static const float settings[PARAM_COUNT]={1,.73f,7300,11500,.41f,.36f,1,0,1,1,1,17,.31f,.22f,0,0,.71f,.83f,.69f,123};
 static const void *CLAP_ABI host_extension(const clap_host_t *host, const char *id) {
     (void)host; (void)id; return NULL;
 }
@@ -67,7 +68,7 @@ static void check_state(const clap_plugin_t *p) {
     memory m = {0}; clap_ostream_t out = {.ctx = &m, .write = write_state};
     clap_istream_t in = {.ctx = &m, .read = read_state};
     assert(state->save(p, &out)); assert(m.size == 12 + PARAM_COUNT * 8);
-    assert(!memcmp(m.data, "RSSP", 4) && m.data[4]==1 && m.data[8]==PARAM_COUNT);
+    assert(!memcmp(m.data, "RSSP", 4) && m.data[4]==2 && m.data[8]==PARAM_COUNT);
     set_values(p, defaults);
     --m.size; assert(!state->load(p, &in)); check_values(p, defaults);
     ++m.size; m.cursor = 0; assert(state->load(p, &in)); check_values(p, settings);
@@ -76,6 +77,14 @@ static void check_state(const clap_plugin_t *p) {
     assert(!state->load(p, &in)); check_values(p, defaults);
     m.data[m.size - 8] ^= 1; m.cursor = 0;
     assert(state->load(p, &in)); check_values(p, settings);
+    /* Version 1 has fifteen direct controls; new macro controls must default
+       even when loaded over a populated nondefault version-2 instance. */
+    m.data[4]=1;m.data[8]=15;m.size=12+15*8;m.cursor=0;
+    assert(state->load(p,&in));
+    float migrated[PARAM_COUNT];memcpy(migrated,defaults,sizeof(migrated));
+    memcpy(migrated,settings,15*sizeof(float));check_values(p,migrated);
+    m.data[4]=2;m.data[8]=20;m.cursor=0;
+    assert(!state->load(p,&in));check_values(p,migrated);
 
 }
 
@@ -165,6 +174,100 @@ static void check_render(const clap_plugin_t *p, float rate) {
     }
 }
 
+/* Independent macro reference: one free-running generator tick per 64
+   non-bypassed frames, including Direct mode and module disable. */
+static void macro_params(retro_space *core,const rs_space_macro *macro,const float *v) {
+    retro_space_params cp=core_params(v);
+    if(v[15]!=0) rs_space_macro_apply(macro,v[17],v[16],v[18],&cp);
+    assert(retro_space_set(core,&cp));
+}
+static void check_macro_render(const clap_plugin_t *plugin,float rate) {
+    enum { N=12288 };
+    float input[2][N],expected[2][N],output[2][N],previous[2][N];
+    float initial[PARAM_COUNT];memcpy(initial,settings,sizeof(initial));initial[15]=1;
+    for(unsigned i=0;i<N;++i) {
+        input[0][i]=.7f*(float)sin(i*.071);input[1][i]=.4f*(float)cos(i*.093);
+    }
+    const unsigned times[]={7,7,63,64,65,129,237,333,389,511,513,769,1025,
+        1537,2049,2049,2049,2049,3073,4096,4096,4096,4096,6145,8193};
+    const unsigned indices[]={16,18,17,16,18,0,0,14,14,15,4,12,13,
+        15,19,16,17,18,15,15,19,16,18,19,17};
+    const float changes[]={.37f,.91f,.81f,.59f,.63f,0,1,1,0,0,.43f,-.6f,.12f,
+        1,65535,.83f,.71f,.77f,0,1,327,.2f,.95f,119,.5f};
+    enum { CHANGES=sizeof(times)/sizeof(times[0]) };
+    for(unsigned pass=0;pass<2;++pass) {
+        set_values(plugin,initial);
+        assert(plugin->activate(plugin,rate,1,MAX_BLOCK)&&plugin->start_processing(plugin));
+        float *warm_in[]={input[0],input[1]},*warm_out[]={output[0],output[1]};
+        clap_audio_buffer_t wi={.data32=warm_in,.channel_count=2},wo={.data32=warm_out,.channel_count=2};
+        clap_process_t warm={.frames_count=MAX_BLOCK,.audio_inputs=&wi,.audio_outputs=&wo,
+            .audio_inputs_count=1,.audio_outputs_count=1};
+        for(unsigned i=0;i<16;++i)assert(plugin->process(plugin,&warm)!=CLAP_PROCESS_ERROR);
+        plugin->reset(plugin);
+        retro_space *core=retro_space_create();assert(core);
+        rs_space_macro macro={0};rs_space_macro_reset(&macro,(int32_t)initial[19]);
+        float v[PARAM_COUNT];memcpy(v,initial,sizeof(v));macro_params(core,&macro,v);
+        assert(retro_space_prepare(core,rate));retro_space_reset(core);
+        memcpy(expected,input,sizeof(expected));
+        unsigned offset=0,change=0,remaining=0,direct_ticks=0,disabled_ticks=0;
+        while(offset<N) {
+            bool controls_changed=false,seed_changed=false;
+            while(change<CHANGES&&times[change]==offset) {
+                unsigned i=indices[change];seed_changed|=i==19&&v[i]!=changes[change];
+                v[i]=changes[change++];controls_changed=true;
+            }
+            if(seed_changed) {rs_space_macro_reset(&macro,(int32_t)v[19]);remaining=0;}
+            if(controls_changed)macro_params(core,&macro,v);
+            unsigned size=(change<CHANGES?times[change]:N)-offset;
+            if(v[14]==0) {
+                if(!remaining) {
+                    rs_space_macro_tick(&macro,rate);remaining=64;macro_params(core,&macro,v);
+                    direct_ticks+=v[15]==0;disabled_ticks+=v[0]==0;
+                }
+                if(size>remaining)size=remaining;
+                retro_space_process(core,expected[0]+offset,expected[1]+offset,size);
+                remaining-=size;
+            }
+            offset+=size;
+        }
+        assert(direct_ticks>0&&disabled_ticks>0);retro_space_destroy(core);
+        if(pass)memcpy(output,input,sizeof(output));
+        const unsigned lengths[]={1,7,63,65,127,511};offset=0;unsigned block=0;
+        while(offset<N) {
+            unsigned size=pass?lengths[block++%6]:MAX_BLOCK;
+            if(size>N-offset)size=N-offset;
+            events e={0};
+            for(unsigned i=0;i<CHANGES;++i)if(times[i]>=offset&&times[i]<offset+size)
+                e.events[e.count++]=make_event(indices[i],changes[i],times[i]-offset);
+            if(pass)for(unsigned first=0;first<e.count;) {
+                unsigned last=first+1;
+                while(last<e.count&&e.events[last].header.time==e.events[first].header.time)++last;
+                for(unsigned i=first,j=last-1;i<j;++i,--j) {
+                    clap_event_param_value_t swap=e.events[i];e.events[i]=e.events[j];e.events[j]=swap;
+                }
+                first=last;
+            }
+            clap_input_events_t ev={.ctx=&e,.size=event_count,.get=event_get};
+            float *in[]={pass?output[0]+offset:input[0]+offset,pass?output[1]+offset:input[1]+offset};
+            float *out[]={output[0]+offset,output[1]+offset};
+            clap_audio_buffer_t ai={.data32=in,.channel_count=2},ao={.data32=out,.channel_count=2};
+            clap_process_t process={.frames_count=size,.audio_inputs=&ai,.audio_outputs=&ao,
+                .audio_inputs_count=1,.audio_outputs_count=1,.in_events=&ev};
+#if defined(__SSE__)
+            unsigned mxcsr=_mm_getcsr();
+#endif
+            assert(plugin->process(plugin,&process)!=CLAP_PROCESS_ERROR);
+#if defined(__SSE__)
+            assert(_mm_getcsr()==mxcsr);
+#endif
+            offset+=size;
+        }
+        assert(!memcmp(output,expected,sizeof(output)));
+        if(pass)assert(!memcmp(output,previous,sizeof(output)));else memcpy(previous,output,sizeof(output));
+        plugin->stop_processing(plugin);plugin->deactivate(plugin);
+    }
+}
+
 static void check_invalid_events(const clap_plugin_t *p) {
     const clap_plugin_params_t *params=p->get_extension(p,CLAP_EXT_PARAMS);
     set_values(p,defaults);
@@ -237,7 +340,7 @@ int main(int argc, char **argv) {
     assert(factory && factory->get_plugin_count(factory) == 1);
     const clap_plugin_descriptor_t *descriptor = factory->get_plugin_descriptor(factory, 0);
     assert(descriptor && !strcmp(descriptor->id, "local.retro-study.space"));
-    assert(!strcmp(descriptor->version,"0.1.0"));
+    assert(!strcmp(descriptor->version,"0.2.0"));
     assert(!factory->get_plugin_descriptor(factory, 1));
     assert(!factory->create_plugin(factory, &host, "invalid.id"));
     const clap_plugin_t *p = factory->create_plugin(factory, &host, descriptor->id);
@@ -275,7 +378,8 @@ int main(int argc, char **argv) {
     assert(!p->activate(p, 1536001, 1, MAX_BLOCK));
     const float rates[] = {48000, 96000, 1000, 384000, 44100, 1536000};
     for (unsigned i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i) check_render(p, rates[i]);
+    check_macro_render(p,44100);check_macro_render(p,48000);check_macro_render(p,96000);
     p->destroy(p); entry->deinit(); assert(dlclose(library) == 0);
-    puts("Space CLAP ABI, state validation, reset, in-place partitions and sample-offset automation passed");
+    puts("Space CLAP ABI, state migration, direct/macro reset, free-running ticks, seed grouping and in-place partitions passed");
     return 0;
 }

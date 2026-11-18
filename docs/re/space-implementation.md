@@ -1,6 +1,6 @@
 # Space C DSP and CLAP study
 
-Retro Study Space 0.1.0 adds the recovered `Block::cResoXBlock` processor as a
+Retro Study Space 0.1.0 introduced the recovered `Block::cResoXBlock` processor as a
 fifth standalone CLAP module. This is the Space engine selected by the supplied
 resource graph, rather than the unrelated generic SimpleReverb block.
 
@@ -21,9 +21,8 @@ study. The decoded full-product defaults differ: see
 all fifteen controls, rejects malformed records atomically and supports partial
 stream reads/writes.
 
-This first version supplies direct engine controls. It does not implement the
-original Magnitude/Amount/Flux macro model, the free-running noise generator,
-production seed identity, complete graph notification order or original GUI.
+Space 0.2.0 adds the Amount/Magnitude/Flux model and free-running generator
+in Macro mode. See [Space macro integration](space-macro-integration.md).
 Pre Wobble Noise and Pre Wobble Amount can be supplied directly. Allpass and
 Reverb Mode expose additional native study switches absent from the product's
 user controls. Meter Feedback is retained as a study value; the native

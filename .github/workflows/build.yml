@@ -42,7 +42,7 @@ jobs:
               RetroStudyDigital) bundle_id=local.retro-study.digital; version=0.3.0 ;;
               RetroStudyWobble) bundle_id=local.retro-study.wobble; version=0.2.0 ;;
               RetroStudyMagnetic) bundle_id=local.retro-study.magnetic; version=0.2.0 ;;
-              RetroStudySpace) bundle_id=local.retro-study.space; version=0.1.0 ;;
+              RetroStudySpace) bundle_id=local.retro-study.space; version=0.2.0 ;;
               RetroStudyDriveCores) bundle_id=local.retro-study.drive-cores; version=0.5.0 ;;
             esac
             test "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$bundle_id"

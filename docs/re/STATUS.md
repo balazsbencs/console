@@ -122,7 +122,7 @@ routing, with a sidechain-driven compressor in each noise container.
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
-| Space | cResoX | Stereo C processor and direct-control CLAP; macro/Flux and original model timing pending |
+| Space | cResoX | Stereo C processor with Direct and Macro CLAP modes and seeded Flux. Original model timing pending |
 | Magnetic | cFlutter | Stereo kernel and four-generator macro graph native-tested; original model timing pending |
 | Global | cPlugChain filters/tone + cStereoWidth + graph gains | Graph recovered; DSP pending |
 
@@ -188,7 +188,7 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Match complete original Distortion graph transition timing. Match Space macro/Flux wiring and port Noise/sample paths.
+3. Match complete original Distortion graph transition timing. Port Noise/sample paths.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a
@@ -201,5 +201,6 @@ Space 0.1.0 adds the ResoX resonator/all-pass/predelay processor and a direct
 CLAP adapter, with physical control metadata recovered from the original
 constructor. See [Space implementation](space-implementation.md),
 [control findings](space-control-findings.md) and
-[validation](space-validation.json). Original Space macro/Flux and full graph
-scheduling remain open.
+[validation](space-validation.json). Space 0.2.0 adds Amount, Magnitude and
+seeded Flux. Original production seed and full graph scheduling remain open.
+See [Space macro integration](space-macro-integration.md).

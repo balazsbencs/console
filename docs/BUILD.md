@@ -228,14 +228,14 @@ python3 tools/compare_native_classic_chain.py --library build-release/libretro_d
 ```
 
 
-Retro Study Space 0.1.0 adds the recovered ResoX numerical processor as
-`RetroStudySpace.clap`. Its fifteen direct controls use IDs 5000–5014 and
-RSSP state version 1. This includes the native resonator/all-pass network,
-stereo modes, focus filters, predelay and manually supplied pre-wobble controls.
-The product macro/Flux model remains pending. Study bounds and reset behavior
-are described in [Space implementation](re/space-implementation.md).
+Retro Study Space 0.2.0 includes the ResoX resonator and all-pass network,
+stereo modes, focus filters and predelay. Choose Macro under Control Mode to
+use Amount, Magnitude and Flux. Flux Seed makes the modulation repeatable.
+The new controls use IDs 5015–5019. RSSP state version 2 loads version 1
+sessions in Direct mode. See [Space macro integration](re/space-macro-integration.md).
 
 ```sh
 python3 tools/compare_native_space_prepare.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_space.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_space_macro.py --library build-release/libretro_dsp.so
 ```

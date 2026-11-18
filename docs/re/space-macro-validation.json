@@ -1,0 +1,89 @@
+{
+  "version": "0.2.0",
+  "native_comparison": {
+    "gcc": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 42,
+      "ticks": 15360,
+      "noise_outputs": 15360,
+      "noise_state_bytes": 614400,
+      "targets": 46080,
+      "preserved_controls": 168960,
+      "audio_samples": 1966080,
+      "control_max_error": 0.0,
+      "audio_max_error": 0.0,
+      "sample_rates": [
+        44100,
+        48000,
+        96000
+      ],
+      "static_ticks": 256,
+      "dynamic_ticks": 1024,
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "One synthetic free-running unipolar Noise record with explicit seeds",
+        "Settled parameter batches; original full model scheduler not executed",
+        "Production Space serialized relation index remains unresolved",
+        "Active input marker held at 1 and meter feedback disabled on both sides; Linux libm"
+      ]
+    },
+    "clang19": {
+      "reference_sha256": "f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a",
+      "scenarios": 42,
+      "ticks": 15360,
+      "noise_outputs": 15360,
+      "noise_state_bytes": 614400,
+      "targets": 46080,
+      "preserved_controls": 168960,
+      "audio_samples": 1966080,
+      "control_max_error": 0.0,
+      "audio_max_error": 0.0,
+      "sample_rates": [
+        44100,
+        48000,
+        96000
+      ],
+      "static_ticks": 256,
+      "dynamic_ticks": 1024,
+      "irregular_partitions": [
+        1,
+        7,
+        13,
+        3,
+        29,
+        11
+      ],
+      "limitations": [
+        "One synthetic free-running unipolar Noise record with explicit seeds",
+        "Settled parameter batches; original full model scheduler not executed",
+        "Production Space serialized relation index remains unresolved",
+        "Active input marker held at 1 and meter feedback disabled on both sides; Linux libm"
+      ]
+    }
+  },
+  "host_tests": {
+    "gcc": "6/6 passed",
+    "clang19": "6/6 passed",
+    "asan_ubsan": "6/6 passed",
+    "space_coverage": [
+      "RSSP version 1 migration and version 2 round trip",
+      "Direct and Macro automation",
+      "Seed changes, bypass, enable and warm reset",
+      "In-place and irregular buffer partitions"
+    ]
+  },
+  "clap_validator": {
+    "version": "0.4.1-127-g152b982",
+    "counts": {
+      "success": 33,
+      "skipped": 11
+    }
+  }
+}
