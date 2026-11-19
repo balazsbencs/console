@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for name in RetroStudyDigital RetroStudyWobble RetroStudyMagnetic RetroStudyDriveCores RetroStudySpace; do
+          for name in RetroStudyDigital RetroStudyWobble RetroStudyMagnetic RetroStudyDriveCores RetroStudySpace RetroStudyNoiseDucking; do
             bundle="build/${name}.clap"
             plist="${bundle}/Contents/Info.plist"
             binary="${bundle}/Contents/MacOS/${name}"
@@ -42,6 +42,7 @@ jobs:
               RetroStudyDigital) bundle_id=local.retro-study.digital; version=0.3.0 ;;
               RetroStudyWobble) bundle_id=local.retro-study.wobble; version=0.2.0 ;;
               RetroStudyMagnetic) bundle_id=local.retro-study.magnetic; version=0.2.0 ;;
+              RetroStudyNoiseDucking) bundle_id=local.retro-study.noise-duck; version=0.1.0 ;;
               RetroStudySpace) bundle_id=local.retro-study.space; version=0.2.0 ;;
               RetroStudyDriveCores) bundle_id=local.retro-study.drive-cores; version=0.5.0 ;;
             esac
@@ -71,7 +72,7 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
       - name: Archive Linux CLAP modules
-        run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap RetroStudyMagnetic.clap RetroStudyDriveCores.clap RetroStudySpace.clap
+        run: tar -czf RetroStudy-Linux-x86_64.tar.gz -C build RetroStudyDigital.clap RetroStudyWobble.clap RetroStudyMagnetic.clap RetroStudyDriveCores.clap RetroStudySpace.clap RetroStudyNoiseDucking.clap
       - name: Upload Linux modules
         uses: actions/upload-artifact@v7.0.2
         with:

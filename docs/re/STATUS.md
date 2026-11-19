@@ -104,7 +104,7 @@ pending. See [Classic implementation](classic-implementation.md) and
 See [Drive Cores implementation](drive-cores-implementation.md) and
 [validation](drive-cores-validation.json).
 
-GitHub Actions builds all five Linux modules and universal arm64/x86_64 macOS
+GitHub Actions builds all six Linux modules and universal arm64/x86_64 macOS
 bundles. Host tests run on the CI runner architecture; the workflow verifies
 both Mach-O slices and preserves bundle structure in uploaded ZIPs. The
 complete RC-20 chain remains pending.
@@ -118,7 +118,7 @@ routing, with a sidechain-driven compressor in each noise container.
 
 | User-facing effect | Actual block(s) | Implementation status |
 | --- | --- | --- |
-| Noise | cNoiseFX + cSimpleComp, pre/post routing | Graph recovered; DSP pending |
+| Noise | cNoiseFX + cSimpleComp, pre/post routing | Sidechain compressor and cubic interpolation native-tested. Texture playback and graph integration pending |
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
@@ -188,7 +188,9 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Match complete original Distortion graph transition timing. Port Noise/sample paths.
+3. Recover NXAC prediction and stereo reconstruction, then port Noise texture
+   playback and integrate the pre/post paths. Match complete original
+   Distortion graph transition timing.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
 5. Confirm Windows/macOS reference equivalence and add platform builds and a
@@ -204,3 +206,20 @@ constructor. See [Space implementation](space-implementation.md),
 [validation](space-validation.json). Space 0.2.0 adds Amount, Magnitude and
 seeded Flux. Original production seed and full graph scheduling remain open.
 See [Space macro integration](space-macro-integration.md).
+
+Noise Ducking 0.1.0 exposes the recovered stereo sidechain compressor
+for a host-supplied texture and sidechain. GCC and Clang each match 2,064,384
+output sample values and 1,548,288 numerical state bytes against isolated native
+compressor calls. See [compressor findings](noise-comp-findings.md).
+
+The C cubic interpolation primitive matches 80,186 values from the
+preloaded mono/stereo branch of `cResamplingAudioSupplier::ReadNextStereo`
+at `0x39f1b0` on each compiler. REA Evidence
+`ev_01018d0594bc0c572e8dda2265d8f4f7f9bc7496059b1bb125039d9abe52e6f0`
+and the raw disassembly are retained under `analysis/re/`.
+The comparison covers fractional stepping over synthetic PCM. Source refill,
+looping and the exact-rate copy path remain pending.
+
+The Noise REA session was saved to `analysis/re/noise.rea` and
+`analysis/re/noise-evidence.json`. See [Noise routing and mappings](noise-control-findings.md)
+and [NXAC findings](noise-nxac-findings.md) for the 16 texture sources.

@@ -15,7 +15,7 @@ production seed indices and full original notification timing remain open.
 See [Wobble fidelity notes](re/wobble-implementation.md) and
 [macro controls](re/wobble-macro-integration.md).
 
-The GitHub Actions workflow builds all five plugins on Linux and macOS. The macOS
+The GitHub Actions workflow builds all six plugins on Linux and macOS. The macOS
 job builds universal **arm64 + x86_64** bundles, runs host tests, verifies both
 slices and bundle metadata, and uploads ZIPs preserving the `.clap` bundles.
 Download them from the `RetroStudy-macOS-universal` artifact on a successful
@@ -32,9 +32,10 @@ ctest --test-dir build-release --output-on-failure
 
 The modules are `build-release/RetroStudyDigital.clap` and
 `build-release/RetroStudyWobble.clap`, plus
-`build-release/RetroStudyMagnetic.clap` and
-`build-release/RetroStudyDriveCores.clap` and
-`build-release/RetroStudySpace.clap`. They are self-contained apart
+`build-release/RetroStudyMagnetic.clap`,
+`build-release/RetroStudyDriveCores.clap`,
+`build-release/RetroStudySpace.clap` and
+`build-release/RetroStudyNoiseDucking.clap`. They are self-contained apart
 from the system C/math libraries; none loads the original plugin or its
 resource packs. Load it through a CLAP host's scan path and use the host's
 generic parameter editor. No custom editor is implemented.
@@ -141,7 +142,7 @@ ctest --test-dir build-release --output-on-failure
 ```
 
 On macOS each `.clap` is a bundle directory containing `Contents/Info.plist`
-and `Contents/MacOS/RetroStudyDigital`, `RetroStudyWobble`, `RetroStudyMagnetic`, `RetroStudyDriveCores` or `RetroStudySpace`. Copy the entire
+and an executable named after the module in `Contents/MacOS/`. Copy the entire
 bundle into `~/Library/Audio/Plug-Ins/CLAP/`. CI artifacts are unsigned and
 unnotarized. macOS may require local authorization to load a downloaded bundle.
 
@@ -238,4 +239,28 @@ sessions in Direct mode. See [Space macro integration](re/space-macro-integratio
 python3 tools/compare_native_space_prepare.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_space.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_space_macro.py --library build-release/libretro_dsp.so
+```
+
+## Noise Ducking
+
+Load Retro Study Noise Ducking 0.1.0 on a stereo texture track. Send the dry
+signal to the plugin's stereo Sidechain input. The same detector gain
+attenuates both texture channels. Raise Duck from its default of 0 to lower
+the detector threshold. The plugin outputs the processed texture, which can
+be mixed with the dry track in the host.
+
+The plugin uses stereo float32 buffers and adds zero latency. A disconnected
+sidechain is treated as silence. Enable controls the compressor and Bypass
+passes the texture through while pausing the compressor state. The adapter
+starts with Enable on. State format `RSND` v1 saves controls 6000–6008.
+
+The shared C library also includes the recovered cubic PCM interpolation
+primitive. NXAC decoding, texture selection and playback in the complete
+Noise path are pending. See [compressor findings](re/noise-comp-findings.md),
+[Noise controls and routing](re/noise-control-findings.md) and
+[NXAC format findings](re/noise-nxac-findings.md).
+
+```sh
+python3 tools/compare_native_noise_comp.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_noise_interp.py --library build-release/libretro_dsp.so
 ```
