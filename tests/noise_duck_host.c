@@ -1,13 +1,16 @@
+#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <clap/clap.h>
 #include <dlfcn.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "noise_comp.h"
 
-enum { FRAMES = 512 };
+enum { FRAMES = 512, SOURCE_ID = 6009, TYPE_ID = 6010, AMOUNT_ID = 6011 };
 typedef struct {
     unsigned char data[128];
     size_t size, offset;
@@ -115,6 +118,107 @@ static void render(const clap_plugin_t *plugin, float rate, bool connected, bool
     plugin->deactivate(plugin);
 }
 
+static void put_u32(unsigned char *data, uint32_t value) {
+    for (unsigned i = 0; i < 4; ++i)
+        data[i] = (unsigned char)(value >> (i * 8));
+}
+
+static void texture_fixture(const char *directory, unsigned id, unsigned char code, char path[128]) {
+    int length = snprintf(path, 128, "%s/990101_%03u_00_v700_Noise [ABC].nxac", directory, id);
+    assert(length > 0 && length < 128);
+    enum { TABLE = 0x128, DATA = TABLE + 16, BYTES_PER_BLOCK = 66 };
+    unsigned char data[DATA + 32 * BYTES_PER_BLOCK] = "NXAC v1.1\n";
+    put_u32(data + 0x100, 0x3a5920b3);
+    put_u32(data + 0x104, 2);
+    put_u32(data + 0x108, 65);
+    put_u32(data + 0x10c, 2048);
+    put_u32(data + 0x110, 64);
+    put_u32(data + 0x114, 0x472c4400);
+    put_u32(data + 0x118, TABLE);
+    put_u32(data + 0x11c, 16);
+    put_u32(data + 0x120, DATA);
+    put_u32(data + 0x124, sizeof(data) - DATA);
+    put_u32(data + TABLE, 0x472c4400);
+    data[TABLE + 12] = 3;
+    for (unsigned offset = DATA; offset < sizeof(data); offset += BYTES_PER_BLOCK) {
+        data[offset] = 30;
+        memset(data + offset + 2, code, 64);
+    }
+    FILE *file = fopen(path, "wb");
+    assert(file && fwrite(data, 1, sizeof(data), file) == sizeof(data));
+    assert(!fclose(file));
+}
+
+static void set_param(const clap_plugin_t *plugin, clap_id id, double value) {
+    const clap_plugin_params_t *params = plugin->get_extension(plugin, CLAP_EXT_PARAMS);
+    clap_event_param_value_t event = {
+        .header = {sizeof(event), 0, CLAP_CORE_EVENT_SPACE_ID, CLAP_EVENT_PARAM_VALUE, 0},
+        .param_id = id, .note_id = -1, .port_index = -1, .channel = -1, .key = -1, .value = value,
+    };
+    clap_input_events_t events = {.ctx = &event, .size = event_count, .get = event_at};
+    params->flush(plugin, &events, NULL);
+}
+
+static void render_samples(const clap_plugin_t *plugin) {
+    char directory[] = "/tmp/retro-study-noise-XXXXXX";
+    char white[128], vinyl[128];
+    assert(mkdtemp(directory));
+    texture_fixture(directory, 1, 192, white);
+    texture_fixture(directory, 12, 96, vinyl);
+    assert(!setenv("RETRO_STUDY_NOISE_DIR", directory, 1));
+
+    set_param(plugin, SOURCE_ID, 1);
+    set_param(plugin, AMOUNT_ID, 1);
+    set_param(plugin, 6001, .9);
+    set_param(plugin, 6007, 0);
+    assert(plugin->activate(plugin, 44100, 1, FRAMES));
+    assert(!unlink(white) && !unlink(vinyl) && !rmdir(directory));
+    assert(plugin->start_processing(plugin));
+
+    float data[2][FRAMES], expected[2][FRAMES], dry[2][FRAMES], key[2][FRAMES] = {0};
+    const unsigned change = 77;
+    for (unsigned i = 0; i < FRAMES; ++i) {
+        dry[0][i] = .8f;
+        dry[1][i] = -.2f;
+        float texture = ((i < change ? 192.0f : 96.0f) - 127.5f) / 256.0f;
+        expected[0][i] = expected[1][i] = texture;
+    }
+    memcpy(data, dry, sizeof(data));
+    rs_noise_comp core = {0};
+    rs_noise_comp_params config = rs_noise_comp_defaults();
+    config.threshold = .9f;
+    config.highpass = 0;
+    assert(rs_noise_comp_set(&core, &config));
+    assert(rs_noise_comp_prepare(&core, 44100));
+    rs_noise_comp_process(&core, expected[0], expected[1], dry[0], dry[1], FRAMES);
+
+    float *in_place[] = {data[0], data[1]};
+    float *side[] = {key[0], key[1]};
+    clap_audio_buffer_t inputs[] = {
+        {.data32 = in_place, .channel_count = 2}, {.data32 = side, .channel_count = 2},
+    };
+    clap_audio_buffer_t out = {.data32 = in_place, .channel_count = 2};
+    clap_event_param_value_t type_change = {
+        .header = {sizeof(type_change), change, CLAP_CORE_EVENT_SPACE_ID, CLAP_EVENT_PARAM_VALUE, 0},
+        .param_id = TYPE_ID, .note_id = -1, .port_index = -1, .channel = -1, .key = -1, .value = 1,
+    };
+    clap_input_events_t events = {.ctx = &type_change, .size = event_count, .get = event_at};
+    clap_process_t p = {.frames_count = FRAMES, .audio_inputs = inputs, .audio_outputs = &out,
+        .audio_inputs_count = 2, .audio_outputs_count = 1, .in_events = &events};
+    assert(plugin->process(plugin, &p) == CLAP_PROCESS_CONTINUE);
+    for (unsigned c = 0; c < 2; ++c)
+        for (unsigned i = 0; i < FRAMES; ++i)
+            assert(fabsf(data[c][i] - (dry[c][i] + expected[c][i])) < 1e-7f);
+
+    memcpy(data, dry, sizeof(data));
+    type_change.header.time = 0;
+    type_change.value = 15;
+    assert(plugin->process(plugin, &p) == CLAP_PROCESS_CONTINUE);
+    assert(memcmp(data, dry, sizeof(data)) == 0);
+    plugin->stop_processing(plugin);
+    plugin->deactivate(plugin);
+}
+
 int main(int argc, char **argv) {
     assert(argc == 2);
     void *module = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
@@ -141,21 +245,31 @@ int main(int argc, char **argv) {
 
     const clap_plugin_state_t *state = plugin->get_extension(plugin, CLAP_EXT_STATE);
     const clap_plugin_params_t *params = plugin->get_extension(plugin, CLAP_EXT_PARAMS);
-    assert(state && params && params->count(plugin) == 9);
+    assert(state && params && params->count(plugin) == 12);
     state_buffer buffer = {0};
     clap_ostream_t writer = {.ctx = &buffer, .write = state_write};
     clap_istream_t reader = {.ctx = &buffer, .read = state_read};
-    assert(state->save(plugin, &writer) && buffer.size == 84);
+    assert(state->save(plugin, &writer) && buffer.size == 108);
     assert(state->load(plugin, &reader));
     buffer.offset = 0;
     --buffer.size;
     assert(!state->load(plugin, &reader));
     double value;
     assert(params->get_value(plugin, 6001, &value) && (float)value == .6f);
+    buffer.data[4] = 1;
+    buffer.data[8] = 9;
+    buffer.size = 84;
+    buffer.offset = 0;
+    set_param(plugin, SOURCE_ID, 1);
+    assert(state->load(plugin, &reader));
+    assert(params->get_value(plugin, SOURCE_ID, &value) && value == 0);
+    assert(params->get_value(plugin, TYPE_ID, &value) && value == 11);
+
+    render_samples(plugin);
 
     plugin->destroy(plugin);
     entry->deinit();
     assert(dlclose(module) == 0);
-    puts("Noise Ducking CLAP ports, state and stereo-linked processing passed");
+    puts("Noise Ducking CLAP ports, state, external ducking and internal texture playback passed");
     return 0;
 }

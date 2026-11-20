@@ -53,10 +53,13 @@ target_link_libraries(retro_space PRIVATE m)
 set_target_properties(retro_space PROPERTIES RETRO_CLAP_VERSION 0.2.0)
 retro_configure_clap(retro_space RetroStudySpace local.retro-study.space)
 
-add_library(retro_noise_duck MODULE src/clap/noise_duck_plugin.c src/dsp/noise_comp.c)
+find_package(Threads REQUIRED)
+add_library(retro_noise_duck MODULE
+  src/clap/noise_duck_plugin.c src/clap/noise_assets.c src/dsp/noise_comp.c
+  src/dsp/noise_player.c src/dsp/noise_interp.c src/dsp/nxac.c src/dsp/nxac_tables.c src/dsp/curves.c)
 target_include_directories(retro_noise_duck PRIVATE src/dsp third_party/clap/include)
-target_link_libraries(retro_noise_duck PRIVATE m)
-set_target_properties(retro_noise_duck PROPERTIES RETRO_CLAP_VERSION 0.1.0)
+target_link_libraries(retro_noise_duck PRIVATE m Threads::Threads)
+set_target_properties(retro_noise_duck PROPERTIES RETRO_CLAP_VERSION 0.2.0)
 retro_configure_clap(retro_noise_duck RetroStudyNoiseDucking local.retro-study.noise-duck)
 
 if(BUILD_TESTING)

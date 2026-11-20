@@ -152,9 +152,17 @@ calls, direct copies for equal rates and the recovered cubic interpolation
 for fractional stepping. Playback starts at frame zero and wraps all
 interpolation taps across the end of the clip. The whole-clip wrap is a study
 choice. Original stack scheduling and type change behavior still need native
-validation. The standalone Noise Ducking CLAP continues to accept texture and
-sidechain tracks from the host. The sample player is available through the shared
-C library.
+validation. Noise Ducking 0.2.0 uses this player for its Samples mode and
+retains the host-supplied texture and sidechain inputs in External mode.
+[Asset setup](../BUILD.md#noise-ducking)
+
+Samples mode follows the recovered menu order. For settled Amount, the
+constructor at `0x3a2310` sets NoiseLevel metadata type `0xb` with anchors
+`-78/-12/0` dB. The scale selector at `0x95f20` resolves that type to
+`Scale_Fit3` at `0x94030`. The gain target at `0x3a5020` uses float
+`powf(10, dB / 20)`. The CLAP applies that target with a unit asset gain
+and an immediate update. The original linear gain ramp, random start and
+stack cursor remain unverified in the adapter. [Noise controls and routing](noise-control-findings.md)
 
 ## Validation
 

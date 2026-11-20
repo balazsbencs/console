@@ -243,23 +243,43 @@ python3 tools/compare_native_space_macro.py --library build-release/libretro_dsp
 
 ## Noise Ducking
 
-Load Retro Study Noise Ducking 0.1.0 on a stereo texture track. Send the dry
-signal to the plugin's stereo Sidechain input. The same detector gain
-attenuates both texture channels. Raise Duck from its default of 0 to lower
-the detector threshold. The plugin outputs the processed texture, which can
-be mixed with the dry track in the host.
+Retro Study Noise Ducking 0.2.0 offers two Texture Source settings.
 
-The plugin uses stereo float32 buffers and adds zero latency. A disconnected
-sidechain is treated as silence. Enable controls the compressor and Bypass
-passes the texture through while pausing the compressor state. The adapter
-starts with Enable on. State format `RSND` v1 saves controls 6000–6008.
+- **Samples** plays the selected local NXAC texture, ducks it with the main
+  stereo input, then mixes it into that input. Choose a Noise Type and use
+  Amount to set the texture level. White is the default type. Install the
+  local files before activation as described below.
+- **External** puts the main stereo input through the linked compressor and
+  uses its stereo Sidechain input as the key. Route a texture track to Main In
+  and the dry signal to Sidechain. A disconnected sidechain supplies silence.
 
-The shared C library can decode local stereo NXAC v1.1 files and play the
-decoded PCM as a loop using the recovered cubic interpolation. Texture
-selection and integration into the CLAP Noise signal path remain pending.
-See [compressor findings](re/noise-comp-findings.md),
+To use Samples, copy your local `*.nxac` files from
+`analysis/unpacked/sound/samples.xpak/` to the directory for your platform.
+Keep their original names, for example `990101_001_00_v700_Noise [ABC].nxac`
+for White.
+
+- macOS uses `~/Library/Application Support/RetroStudy/Noise/`.
+- Linux uses `$XDG_DATA_HOME/RetroStudy/Noise/`, falling back to
+  `~/.local/share/RetroStudy/Noise/`.
+- To override either directory, set `RETRO_STUDY_NOISE_DIR` in the DAW's
+  launch environment to the absolute path containing the NXAC files.
+
+The plug-in decodes the files at activation and shares the decoded PCM
+between active instances. The last deactivation releases the bank. Restart
+the host after changing the files or their directory. A missing or invalid
+selected file contributes silence, so the main signal passes through.
+
+Raise Duck from 0 to lower the detector threshold. Bypass passes the main
+input through and pauses processing. In Samples mode, Enable off or Amount
+zero pauses the texture branch. A newly selected texture starts at frame
+zero. The plug-in uses stereo float32 buffers and adds zero latency.
+
+State format `RSND` v2 saves controls 6000–6011. New instances and v1 sessions
+start in External. Samples is a standalone dry-plus-texture branch. Follow,
+Tone, Flux and routing around the other effects remain pending. See
+[compressor findings](re/noise-comp-findings.md),
 [Noise controls and routing](re/noise-control-findings.md) and
-[NXAC format findings](re/noise-nxac-findings.md).
+[NXAC format and playback](re/noise-nxac-findings.md).
 
 ```sh
 python3 tools/compare_native_noise_comp.py --library build-release/libretro_dsp.so

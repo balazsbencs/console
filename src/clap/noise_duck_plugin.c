@@ -1,4 +1,6 @@
 #include <clap/clap.h>
+#include "curves.h"
+#include "noise_assets.h"
 #include "noise_comp.h"
 #include <math.h>
 #include <stdatomic.h>
@@ -14,20 +16,23 @@ _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "Audio parameter publication requires 
 _Static_assert(sizeof(float) == 4, "State format requires 32-bit floats");
 
 enum { ENABLE, THRESHOLD, RATIO, ATTACK, RELEASE, AVERAGING, GAIN_COMP,
-       HIGHPASS, BYPASS, PARAM_COUNT };
+       HIGHPASS, BYPASS, SOURCE, TYPE, AMOUNT, PARAM_COUNT };
+enum { EXTERNAL, SAMPLES };
 typedef struct { const char *name; float low, high, initial; } parameter;
 static const parameter parameters[PARAM_COUNT] = {
     {"Enable",0,1,1}, {"Duck",0,1,0}, {"Ratio",0,1,.5f},
     {"Attack",0,1,0}, {"Release",0,1,.2f}, {"Averaging",0,1,0},
     {"Gain Compensation",0,1,0}, {"Sidechain Highpass",0,1,1}, {"Bypass",0,1,0},
+    {"Texture Source",0,1,EXTERNAL}, {"Noise Type",0,RS_NOISE_TYPES - 1,RS_NOISE_WHITE},
+    {"Amount",0,1,.5f},
 };
 static const char *const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
     CLAP_PLUGIN_FEATURE_COMPRESSOR, CLAP_PLUGIN_FEATURE_STEREO, NULL};
 static const clap_plugin_descriptor_t descriptor = {
     .clap_version = CLAP_VERSION_INIT, .id = "local.retro-study.noise-duck",
     .name = "Retro Study Noise Ducking", .vendor = "Retro Study", .url = "",
-    .manual_url = "", .support_url = "", .version = "0.1.0",
-    .description = "Noise ducking compressor for a stereo texture input and an external stereo sidechain.",
+    .manual_url = "", .support_url = "", .version = "0.2.0",
+    .description = "Play and duck local noise textures or duck a stereo texture track with an external sidechain.",
     .features = features,
 };
 typedef struct {
@@ -37,6 +42,10 @@ typedef struct {
     atomic_uint values[PARAM_COUNT];
     float applied[PARAM_COUNT];
     rs_noise_comp dsp;
+    const rs_noise_assets *assets;
+    rs_noise_player players[RS_NOISE_TYPES];
+    int rendered_source, selected_type;
+    float cached_amount, texture_gain;
     bool active, processing;
     uint32_t max_frames;
 } instance;
@@ -47,7 +56,11 @@ static float bits_float(unsigned bits) { float value; memcpy(&value, &bits, 4); 
 static float value_at(const instance *s, unsigned index) {
     return bits_float(atomic_load_explicit(&s->values[index], memory_order_relaxed));
 }
-static bool stepped(unsigned i) { return i == BYPASS || i == ENABLE; }
+static bool enumerated(unsigned i) { return i == SOURCE || i == TYPE; }
+static bool stepped(unsigned i) { return i == BYPASS || i == ENABLE || enumerated(i); }
+static const char *option_name(unsigned index, unsigned option) {
+    return index == TYPE ? rs_noise_type_name(option) : option == EXTERNAL ? "External" : "Samples";
+}
 static bool valid_value(unsigned i, double value) {
     return i < PARAM_COUNT && isfinite(value) && value >= parameters[i].low && value <= parameters[i].high
         && (!stepped(i) || value == floor(value));
@@ -70,6 +83,7 @@ static bool CLAP_ABI plugin_init(const clap_plugin_t *plugin) {
     return true;
 }
 static void CLAP_ABI destroy(const clap_plugin_t *plugin) {
+    rs_noise_assets_release(self(plugin)->assets);
     free(self(plugin));
 }
 static bool CLAP_ABI activate(const clap_plugin_t *plugin, double rate, uint32_t min_frames, uint32_t max_frames) {
@@ -78,10 +92,22 @@ static bool CLAP_ABI activate(const clap_plugin_t *plugin, double rate, uint32_t
         min_frames < 1 || min_frames > max_frames || max_frames > INT32_MAX) return false;
     apply_values(s);
     if (!rs_noise_comp_prepare(&s->dsp, (float)rate)) return false;
+    s->assets = rs_noise_assets_acquire();
+    memset(s->players, 0, sizeof(s->players));
+    for (unsigned i = 0; i < RS_NOISE_TYPES; ++i)
+        (void)rs_noise_assets_prepare(s->assets, i, rate, &s->players[i]);
+    s->rendered_source = (int)s->applied[SOURCE];
+    s->selected_type = -1;
+    s->cached_amount = -1;
     s->active = true; s->max_frames = max_frames;
     return true;
 }
-static void CLAP_ABI deactivate(const clap_plugin_t *plugin) { self(plugin)->active = false; }
+static void CLAP_ABI deactivate(const clap_plugin_t *plugin) {
+    instance *s = self(plugin);
+    s->active = false;
+    rs_noise_assets_release(s->assets);
+    s->assets = NULL;
+}
 static bool CLAP_ABI start(const clap_plugin_t *plugin) {
     instance *s = self(plugin);
     if (!s->active || s->processing) return false;
@@ -92,6 +118,7 @@ static void CLAP_ABI reset(const clap_plugin_t *plugin) {
     instance *s = self(plugin);
     apply_values(s);
     rs_noise_comp_reset(&s->dsp);
+    s->selected_type = -1;
 }
 static void accept_event(instance *s, const clap_event_header_t *header) {
     if (!header || header->space_id != CLAP_CORE_EVENT_SPACE_ID || header->type != CLAP_EVENT_PARAM_VALUE ||
@@ -102,6 +129,40 @@ static void accept_event(instance *s, const clap_event_header_t *header) {
         !valid_value((unsigned)i, event->value)) return;
     atomic_store_explicit(&s->values[i], float_bits((float)event->value), memory_order_relaxed);
 }
+static void mix_texture(instance *s, float **dry, float **out, uint32_t first, uint32_t last) {
+    int type = (int)s->applied[TYPE];
+    rs_noise_player *player = &s->players[type];
+    if (s->selected_type != type) {
+        rs_noise_player_reset(player);
+        s->selected_type = type;
+    }
+    float amount = s->applied[AMOUNT];
+    if (s->cached_amount != amount) {
+        s->cached_amount = amount;
+        s->texture_gain = amount > 0 ?
+            powf(10.0f, retro_scale_fit3(amount, -78.0f, 0.0f, -12.0f) / 20.0f) : 0;
+    }
+    if (!player->frames || !s->texture_gain || !s->applied[ENABLE])
+        return;
+
+    while (first < last) {
+        float texture_left[64], texture_right[64];
+        uint32_t count = last - first < 64 ? last - first : 64;
+        rs_noise_player_process(player, texture_left, texture_right, count);
+        for (uint32_t i = 0; i < count; ++i) {
+            texture_left[i] *= s->texture_gain;
+            texture_right[i] *= s->texture_gain;
+        }
+        rs_noise_comp_process(&s->dsp, texture_left, texture_right,
+                              dry[0] + first, dry[1] + first, count);
+        for (uint32_t i = 0; i < count; ++i) {
+            out[0][first + i] += texture_left[i];
+            out[1][first + i] += texture_right[i];
+        }
+        first += count;
+    }
+}
+
 static void process_range(instance *s, const clap_process_t *p, uint32_t first, uint32_t last) {
     if (first == last) return;
     float **in = p->audio_inputs[0].data32;
@@ -111,6 +172,16 @@ static void process_range(instance *s, const clap_process_t *p, uint32_t first, 
             memmove(out[channel] + first, in[channel] + first, (last - first) * sizeof(float));
 
     if (s->applied[BYPASS] != 0) return;
+    int source = (int)s->applied[SOURCE];
+    if (s->rendered_source != source) {
+        rs_noise_comp_reset(&s->dsp);
+        s->selected_type = -1;
+        s->rendered_source = source;
+    }
+    if (source == SAMPLES) {
+        mix_texture(s, in, out, first, last);
+        return;
+    }
     float **side = p->audio_inputs_count == 2 ? p->audio_inputs[1].data32 : NULL;
     rs_noise_comp_process(&s->dsp, out[0] + first, out[1] + first,
                           side ? side[0] + first : NULL,
@@ -164,7 +235,7 @@ static bool CLAP_ABI port_info(const clap_plugin_t *p, uint32_t index, bool inpu
     info->port_type = CLAP_PORT_STEREO;
     info->flags = index == 0 ? CLAP_AUDIO_PORT_IS_MAIN : 0;
     info->in_place_pair = index == 0 ? 0 : CLAP_INVALID_ID;
-    snprintf(info->name, sizeof(info->name), "%s", index ? "Sidechain" : input ? "Texture In" : "Texture Out");
+    snprintf(info->name, sizeof(info->name), "%s", index ? "Sidechain" : input ? "Main In" : "Main Out");
     return true;
 }
 static uint32_t CLAP_ABI param_count(const clap_plugin_t *p) { (void)p; return PARAM_COUNT; }
@@ -174,6 +245,7 @@ static bool CLAP_ABI param_info(const clap_plugin_t *p, uint32_t index, clap_par
     memset(info, 0, sizeof(*info)); info->id = 6000 + index;
     info->flags = CLAP_PARAM_IS_AUTOMATABLE;
     if (stepped(index)) info->flags |= CLAP_PARAM_IS_STEPPED;
+    if (enumerated(index)) info->flags |= CLAP_PARAM_IS_ENUM;
     if (index == BYPASS) info->flags |= CLAP_PARAM_IS_BYPASS;
     info->min_value = parameters[index].low; info->max_value = parameters[index].high;
     info->default_value = parameters[index].initial;
@@ -189,12 +261,22 @@ static bool CLAP_ABI param_text(const clap_plugin_t *p, clap_id id, double value
     (void)p; int i = index_for(id);
     if (i < 0 || !text || capacity == 0 || !isfinite(value) ||
         (value<parameters[i].low || value>parameters[i].high)) return false;
-    int n = snprintf(text, capacity, "%.9g", value);
+    int n = enumerated((unsigned)i) ?
+        snprintf(text, capacity, "%s", option_name((unsigned)i, (unsigned)value)) :
+        snprintf(text, capacity, "%.9g", value);
     return n >= 0 && (uint32_t)n < capacity;
 }
 static bool CLAP_ABI param_parse(const clap_plugin_t *p, clap_id id, const char *text, double *value) {
     (void)p; int i = index_for(id);
     if (i < 0 || !text || !value) return false;
+    if (enumerated((unsigned)i)) {
+        for (unsigned option = 0; option <= (unsigned)parameters[i].high; ++option) {
+            if (!strcmp(text, option_name((unsigned)i, option))) {
+                *value = option;
+                return true;
+            }
+        }
+    }
     char *end; double parsed = strtod(text, &end);
     float rounded = (float)parsed;
     if (end == text || *end || !isfinite(parsed) || !isfinite(rounded) ||
@@ -214,10 +296,10 @@ static void encode32(unsigned char *out, uint32_t value) {
 static uint32_t decode32(const unsigned char *in) {
     return (uint32_t)in[0] | (uint32_t)in[1] << 8 | (uint32_t)in[2] << 16 | (uint32_t)in[3] << 24;
 }
-enum { STATE_SIZE = 12 + PARAM_COUNT * 8 };
+enum { STATE_SIZE = 12 + PARAM_COUNT * 8, LEGACY_PARAM_COUNT = 9 };
 static bool CLAP_ABI save_state(const clap_plugin_t *p, const clap_ostream_t *stream) {
     unsigned char data[STATE_SIZE]; memcpy(data, "RSND", 4);
-    encode32(data + 4, 1); encode32(data + 8, PARAM_COUNT);
+    encode32(data + 4, 2); encode32(data + 8, PARAM_COUNT);
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         encode32(data + 12 + i * 8, 6000 + i);
         encode32(data + 16 + i * 8, float_bits(value_at(self(p), i)));
@@ -238,7 +320,9 @@ static bool CLAP_ABI load_state(const clap_plugin_t *p, const clap_istream_t *st
         offset += (size_t)n;
     }
     uint32_t version = decode32(data + 4), count = decode32(data + 8);
-    if (memcmp(data, "RSND", 4) || version != 1 || count != PARAM_COUNT) return false;
+    if (memcmp(data, "RSND", 4) ||
+        !((version == 1 && count == LEGACY_PARAM_COUNT) || (version == 2 && count == PARAM_COUNT)))
+        return false;
     size_t size = 12 + count * 8;
     while (offset < size) {
         int64_t n = stream->read(stream, data + offset, size - offset);
