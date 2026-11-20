@@ -17,7 +17,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-add_library(retro_dsp_objects OBJECT src/dsp/noise_comp.c src/dsp/noise_interp.c src/dsp/noise_player.c src/dsp/nxac.c src/dsp/nxac_tables.c src/dsp/space.c src/dsp/space_macro.c src/dsp/space_prepare.c src/dsp/bitcolor.c src/dsp/curves.c src/dsp/noisegen.c src/dsp/relations.c src/dsp/digital_flux.c src/dsp/wobble.c src/dsp/wobble_macro.c src/dsp/magnetic.c src/dsp/magnetic_macro.c src/dsp/air_pressure.c src/dsp/tube_pair.c src/dsp/iron_transformer.c src/dsp/drive.c src/dsp/classic.c src/dsp/classic_chain.c src/dsp/peak_eq.c src/dsp/classic_split.c src/dsp/magic.c src/dsp/gain.c src/dsp/dist_chain.c)
+add_library(retro_dsp_objects OBJECT src/dsp/noise_tone.c src/dsp/noise_tone_coeff.c src/dsp/noise_comp.c src/dsp/noise_interp.c src/dsp/noise_player.c src/dsp/nxac.c src/dsp/nxac_tables.c src/dsp/space.c src/dsp/space_macro.c src/dsp/space_prepare.c src/dsp/bitcolor.c src/dsp/curves.c src/dsp/noisegen.c src/dsp/relations.c src/dsp/digital_flux.c src/dsp/wobble.c src/dsp/wobble_macro.c src/dsp/magnetic.c src/dsp/magnetic_macro.c src/dsp/air_pressure.c src/dsp/tube_pair.c src/dsp/iron_transformer.c src/dsp/drive.c src/dsp/classic.c src/dsp/classic_chain.c src/dsp/peak_eq.c src/dsp/classic_split.c src/dsp/magic.c src/dsp/gain.c src/dsp/dist_chain.c)
 target_include_directories(retro_dsp_objects PUBLIC src/dsp)
 add_library(retro_dsp SHARED $<TARGET_OBJECTS:retro_dsp_objects>)
 target_include_directories(retro_dsp PUBLIC src/dsp)
@@ -56,10 +56,11 @@ retro_configure_clap(retro_space RetroStudySpace local.retro-study.space)
 find_package(Threads REQUIRED)
 add_library(retro_noise_duck MODULE
   src/clap/noise_duck_plugin.c src/clap/noise_assets.c src/dsp/noise_comp.c
+  src/dsp/noise_tone.c src/dsp/noise_tone_coeff.c
   src/dsp/noise_player.c src/dsp/noise_interp.c src/dsp/nxac.c src/dsp/nxac_tables.c src/dsp/curves.c)
 target_include_directories(retro_noise_duck PRIVATE src/dsp third_party/clap/include)
 target_link_libraries(retro_noise_duck PRIVATE m Threads::Threads)
-set_target_properties(retro_noise_duck PROPERTIES RETRO_CLAP_VERSION 0.2.0)
+set_target_properties(retro_noise_duck PROPERTIES RETRO_CLAP_VERSION 0.3.0)
 retro_configure_clap(retro_noise_duck RetroStudyNoiseDucking local.retro-study.noise-duck)
 
 if(BUILD_TESTING)

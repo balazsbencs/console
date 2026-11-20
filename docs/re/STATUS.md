@@ -118,7 +118,7 @@ routing, with a sidechain-driven compressor in each noise container.
 
 | User-facing effect | Actual block(s) | Implementation status |
 | --- | --- | --- |
-| Noise | cNoiseFX + cSimpleComp, pre/post routing | CLAP plays and ducks local NXAC textures. Decoder and compressor native-tested. Original stack timing and pre/post chain pending |
+| Noise | cNoiseFX + cSimpleComp, pre/post routing | CLAP plays, tone-shapes and ducks local NXAC textures. Original stack timing and pre/post chain pending |
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
@@ -188,7 +188,7 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Recover Noise stack scheduling and Follow/Tone/Flux behavior, then wire
+3. Recover Noise stack scheduling and Follow/Flux behavior, then wire
    its pre/post paths in the full chain. Match complete original
    Distortion graph transition timing.
 4. Integrate the global graph and original control mappings into a separate
@@ -232,3 +232,6 @@ scheduling is recovered. [Decoder and playback details](noise-nxac-findings.md)
 Noise Ducking 0.2.0 adds Samples mode. It preloads local NXAC textures, uses
 the main input as the compressor key and sums the ducked texture into the
 dry signal. Older states load in External mode. [Asset setup](../BUILD.md#noise-ducking)
+
+Noise Ducking 0.3.0 adds the recovered Tone filter and 64-frame transitions
+to Samples mode. Version 1 and 2 states default to neutral Tone. [Tone findings](noise-control-findings.md#tone-dsp)

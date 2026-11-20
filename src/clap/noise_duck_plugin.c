@@ -2,6 +2,7 @@
 #include "curves.h"
 #include "noise_assets.h"
 #include "noise_comp.h"
+#include "noise_tone.h"
 #include <math.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -16,7 +17,7 @@ _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "Audio parameter publication requires 
 _Static_assert(sizeof(float) == 4, "State format requires 32-bit floats");
 
 enum { ENABLE, THRESHOLD, RATIO, ATTACK, RELEASE, AVERAGING, GAIN_COMP,
-       HIGHPASS, BYPASS, SOURCE, TYPE, AMOUNT, PARAM_COUNT };
+       HIGHPASS, BYPASS, SOURCE, TYPE, AMOUNT, TONE, PARAM_COUNT };
 enum { EXTERNAL, SAMPLES };
 typedef struct { const char *name; float low, high, initial; } parameter;
 static const parameter parameters[PARAM_COUNT] = {
@@ -24,14 +25,14 @@ static const parameter parameters[PARAM_COUNT] = {
     {"Attack",0,1,0}, {"Release",0,1,.2f}, {"Averaging",0,1,0},
     {"Gain Compensation",0,1,0}, {"Sidechain Highpass",0,1,1}, {"Bypass",0,1,0},
     {"Texture Source",0,1,EXTERNAL}, {"Noise Type",0,RS_NOISE_TYPES - 1,RS_NOISE_WHITE},
-    {"Amount",0,1,.5f},
+    {"Amount",0,1,.5f}, {"Tone",0,1,.5f},
 };
 static const char *const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
     CLAP_PLUGIN_FEATURE_COMPRESSOR, CLAP_PLUGIN_FEATURE_STEREO, NULL};
 static const clap_plugin_descriptor_t descriptor = {
     .clap_version = CLAP_VERSION_INIT, .id = "local.retro-study.noise-duck",
     .name = "Retro Study Noise Ducking", .vendor = "Retro Study", .url = "",
-    .manual_url = "", .support_url = "", .version = "0.2.0",
+    .manual_url = "", .support_url = "", .version = "0.3.0",
     .description = "Play and duck local noise textures or duck a stereo texture track with an external sidechain.",
     .features = features,
 };
@@ -42,6 +43,7 @@ typedef struct {
     atomic_uint values[PARAM_COUNT];
     float applied[PARAM_COUNT];
     rs_noise_comp dsp;
+    rs_noise_tone tone;
     const rs_noise_assets *assets;
     rs_noise_player players[RS_NOISE_TYPES];
     int rendered_source, selected_type;
@@ -91,7 +93,8 @@ static bool CLAP_ABI activate(const clap_plugin_t *plugin, double rate, uint32_t
     if (s->active || !isfinite(rate) || rate < 1000 || rate > 1536000 ||
         min_frames < 1 || min_frames > max_frames || max_frames > INT32_MAX) return false;
     apply_values(s);
-    if (!rs_noise_comp_prepare(&s->dsp, (float)rate)) return false;
+    if (!rs_noise_comp_prepare(&s->dsp, (float)rate) ||
+        !rs_noise_tone_prepare(&s->tone, (float)rate)) return false;
     s->assets = rs_noise_assets_acquire();
     memset(s->players, 0, sizeof(s->players));
     for (unsigned i = 0; i < RS_NOISE_TYPES; ++i)
@@ -118,6 +121,7 @@ static void CLAP_ABI reset(const clap_plugin_t *plugin) {
     instance *s = self(plugin);
     apply_values(s);
     rs_noise_comp_reset(&s->dsp);
+    rs_noise_tone_reset(&s->tone);
     s->selected_type = -1;
 }
 static void accept_event(instance *s, const clap_event_header_t *header) {
@@ -145,10 +149,12 @@ static void mix_texture(instance *s, float **dry, float **out, uint32_t first, u
     if (!player->frames || !s->texture_gain || !s->applied[ENABLE])
         return;
 
+    (void)rs_noise_tone_set(&s->tone, s->applied[TONE]);
     while (first < last) {
         float texture_left[64], texture_right[64];
         uint32_t count = last - first < 64 ? last - first : 64;
         rs_noise_player_process(player, texture_left, texture_right, count);
+        rs_noise_tone_process(&s->tone, texture_left, texture_right, count);
         for (uint32_t i = 0; i < count; ++i) {
             texture_left[i] *= s->texture_gain;
             texture_right[i] *= s->texture_gain;
@@ -175,6 +181,7 @@ static void process_range(instance *s, const clap_process_t *p, uint32_t first, 
     int source = (int)s->applied[SOURCE];
     if (s->rendered_source != source) {
         rs_noise_comp_reset(&s->dsp);
+        rs_noise_tone_reset(&s->tone);
         s->selected_type = -1;
         s->rendered_source = source;
     }
@@ -296,10 +303,10 @@ static void encode32(unsigned char *out, uint32_t value) {
 static uint32_t decode32(const unsigned char *in) {
     return (uint32_t)in[0] | (uint32_t)in[1] << 8 | (uint32_t)in[2] << 16 | (uint32_t)in[3] << 24;
 }
-enum { STATE_SIZE = 12 + PARAM_COUNT * 8, LEGACY_PARAM_COUNT = 9 };
+enum { STATE_SIZE = 12 + PARAM_COUNT * 8, V1_PARAM_COUNT = 9, V2_PARAM_COUNT = 12 };
 static bool CLAP_ABI save_state(const clap_plugin_t *p, const clap_ostream_t *stream) {
     unsigned char data[STATE_SIZE]; memcpy(data, "RSND", 4);
-    encode32(data + 4, 2); encode32(data + 8, PARAM_COUNT);
+    encode32(data + 4, 3); encode32(data + 8, PARAM_COUNT);
     for (unsigned i = 0; i < PARAM_COUNT; ++i) {
         encode32(data + 12 + i * 8, 6000 + i);
         encode32(data + 16 + i * 8, float_bits(value_at(self(p), i)));
@@ -321,7 +328,8 @@ static bool CLAP_ABI load_state(const clap_plugin_t *p, const clap_istream_t *st
     }
     uint32_t version = decode32(data + 4), count = decode32(data + 8);
     if (memcmp(data, "RSND", 4) ||
-        !((version == 1 && count == LEGACY_PARAM_COUNT) || (version == 2 && count == PARAM_COUNT)))
+        !((version == 1 && count == V1_PARAM_COUNT) || (version == 2 && count == V2_PARAM_COUNT) ||
+          (version == 3 && count == PARAM_COUNT)))
         return false;
     size_t size = 12 + count * 8;
     while (offset < size) {

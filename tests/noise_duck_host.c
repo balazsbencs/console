@@ -12,8 +12,9 @@
 #include <string.h>
 #include <unistd.h>
 #include "noise_comp.h"
+#include "noise_tone.h"
 
-enum { FRAMES = 512, SOURCE_ID = 6009, TYPE_ID = 6010, AMOUNT_ID = 6011 };
+enum { FRAMES = 512, SOURCE_ID = 6009, TYPE_ID = 6010, AMOUNT_ID = 6011, TONE_ID = 6012 };
 typedef struct {
     unsigned char data[128];
     size_t size, offset;
@@ -172,6 +173,7 @@ static void render_samples(const clap_plugin_t *plugin) {
 
     set_param(plugin, SOURCE_ID, 1);
     set_param(plugin, AMOUNT_ID, 1);
+    set_param(plugin, TONE_ID, .9);
     set_param(plugin, 6001, .9);
     set_param(plugin, 6007, 0);
     assert(plugin->activate(plugin, 44100, 1, FRAMES));
@@ -193,6 +195,10 @@ static void render_samples(const clap_plugin_t *plugin) {
     config.highpass = 0;
     assert(rs_noise_comp_set(&core, &config));
     assert(rs_noise_comp_prepare(&core, 44100));
+    rs_noise_tone tone = {0};
+    assert(rs_noise_tone_prepare(&tone, 44100));
+    assert(rs_noise_tone_set(&tone, .9f));
+    rs_noise_tone_process(&tone, expected[0], expected[1], FRAMES);
     rs_noise_comp_process(&core, expected[0], expected[1], dry[0], dry[1], FRAMES);
 
     float *in_place[] = {data[0], data[1]};
@@ -214,7 +220,22 @@ static void render_samples(const clap_plugin_t *plugin) {
             assert(fabsf(data[c][i] - (dry[c][i] + expected[c][i])) < 1e-7f);
 
     memcpy(data, dry, sizeof(data));
+    for (unsigned i = 0; i < FRAMES; ++i)
+        expected[0][i] = expected[1][i] = (96.0f - 127.5f) / 256.0f;
+    rs_noise_tone_process(&tone, expected[0], expected[1], change);
+    assert(rs_noise_tone_set(&tone, .1f));
+    rs_noise_tone_process(&tone, expected[0] + change, expected[1] + change, FRAMES - change);
+    rs_noise_comp_process(&core, expected[0], expected[1], dry[0], dry[1], FRAMES);
+    type_change.param_id = TONE_ID;
+    type_change.value = .1;
+    assert(plugin->process(plugin, &p) == CLAP_PROCESS_CONTINUE);
+    for (unsigned c = 0; c < 2; ++c)
+        for (unsigned i = 0; i < FRAMES; ++i)
+            assert(fabsf(data[c][i] - (dry[c][i] + expected[c][i])) < 1e-7f);
+
+    memcpy(data, dry, sizeof(data));
     type_change.header.time = 0;
+    type_change.param_id = TYPE_ID;
     type_change.value = 15;
     assert(plugin->process(plugin, &p) == CLAP_PROCESS_CONTINUE);
     assert(memcmp(data, dry, sizeof(data)) == 0);
@@ -248,17 +269,27 @@ int main(int argc, char **argv) {
 
     const clap_plugin_state_t *state = plugin->get_extension(plugin, CLAP_EXT_STATE);
     const clap_plugin_params_t *params = plugin->get_extension(plugin, CLAP_EXT_PARAMS);
-    assert(state && params && params->count(plugin) == 12);
+    assert(state && params && params->count(plugin) == 13);
     state_buffer buffer = {0};
     clap_ostream_t writer = {.ctx = &buffer, .write = state_write};
     clap_istream_t reader = {.ctx = &buffer, .read = state_read};
-    assert(state->save(plugin, &writer) && buffer.size == 108);
+    set_param(plugin, TONE_ID, .7);
+    assert(state->save(plugin, &writer) && buffer.size == 116);
+    set_param(plugin, TONE_ID, .4);
     assert(state->load(plugin, &reader));
+    double value;
+    assert(params->get_value(plugin, TONE_ID, &value) && (float)value == .7f);
     buffer.offset = 0;
     --buffer.size;
     assert(!state->load(plugin, &reader));
-    double value;
     assert(params->get_value(plugin, 6001, &value) && (float)value == .6f);
+    buffer.data[4] = 2;
+    buffer.data[8] = 12;
+    buffer.size = 108;
+    buffer.offset = 0;
+    set_param(plugin, TONE_ID, .1);
+    assert(state->load(plugin, &reader));
+    assert(params->get_value(plugin, TONE_ID, &value) && value == .5);
     buffer.data[4] = 1;
     buffer.data[8] = 9;
     buffer.size = 84;

@@ -99,6 +99,42 @@ baseline can remain nonzero. Zero generator gain need not freeze internal
 random history. No Enable-dependent stochastic gate appears in this resource
 wiring. Original production seed record indices remain unidentified here.
 
+## Tone DSP
+
+Samples mode applies Tone to the texture before level gain, the compressor,
+and the dry mix. The control uses normalized values from 0 to 1 with 0.5
+neutral. The original implements an 800 Hz type-7 high shelf with Q=0.5,
+a shelf target of `(smoothed - .5) * 48` dB and compensating gain of
+`powf(10, (shelf_db * -.5) * .05)`. The opposite compensation accounts for the
+display range of -12 to +12 dB even though the shelf spans -24 to +24 dB.
+
+At the start of each 64-frame batch, the smoother updates its current value
+in units of 1/16384. First use snaps to the target. Subsequent changes apply
+the native bounded step and snap when the scaled error falls below .016384.
+The biquad coefficients update together at the start of the batch. The
+compensation ramps from the previous active gain and reaches the new value at
+the last frame. Exact neutral bypasses the filter and clears both channel
+histories while retaining the previous active compensation. As in the original
+arithmetic, the filter stores its recursive output after adding and
+subtracting .0001, before applying the compensation.
+
+The CLAP preserves this cadence across host buffer sizes. Activation, host
+reset and texture source changes restart the smoother. Pausing the texture
+branch pauses Tone as well. The original plugin also snaps on gaps in its
+internal timestamps. Its complete graph scheduling remains pending.
+
+The Linux x86_64 comparison runs the original numerical prepare, update and
+filter slices on synthetic buffers. C matches 5,308,416 output values bit for
+bit on both GCC and Clang across nine rates, dynamic controls, neutral
+bypass, resets and irregular buffer partitions. The CLAP host test also checks
+Tone automation during sample playback and neutral defaults for older states.
+
+| Observation | Original address or retained REA evidence |
+| --- | --- |
+| Noise prepare and Tone setup | `0x3a43a0`, `ev_e3a0492eed054fd46c89a95cbc462ca15b3ccfb26320a16722bd0822226e7b7b` |
+| Tone update and stereo filter loop | `0x3a54e9`, `0x3a61ea`, `ev_ebdacc03dc92b21d7d5dc7e6823195e58b77d5fd23affdf5550c632172e71a34` |
+| Type-7 biquad setup and gain change | `0x1a4ff0`, `0x1a5590` |
+
 ## Sample selection
 
 Config.lua:51–69 gives the following display order and native values:
