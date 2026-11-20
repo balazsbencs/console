@@ -95,19 +95,20 @@ def main():
     counts = dict(scenarios=0, samples=0, state_bytes=0)
     rates = [1000, 22050, 44100, 44117, 48000, 48001, 96000, 192000, 1536000]
     tones = [0, .001, .25, .499999, .5, .500001, .75, .999, 1]
+    changes = {3: 0, 7: .5, 17: 1, 31: .500001, 47: .25,
+               79: .499999, 111: .75, 151: .001, 191: .999, 223: .5}
     for rate in rates:
         for tone in tones:
             for dynamic in [False, True]:
-                state = C.create_string_buffer(4096)
+                state = C.create_string_buffer(C.sizeof(Tone))
                 current = C.c_float(tone).value
                 assert lib.rs_noise_tone_prepare(state, rate)
                 assert lib.rs_noise_tone_set(state, current)
                 native.prepare(rate, current)
                 rng = random.Random(rate)
                 for block in range(256):
-                    if dynamic and block in [3, 7, 17, 31, 47, 79, 111, 151, 191, 223]:
-                        current = C.c_float([0, .5, 1, .500001, .25, .499999, .75,
-                                             .001, .999, .5][[3, 7, 17, 31, 47, 79, 111, 151, 191, 223].index(block)]).value
+                    if dynamic and block in changes:
+                        current = C.c_float(changes[block]).value
                         assert lib.rs_noise_tone_set(state, current)
                         native.set(current)
                     if block == 128:
@@ -130,18 +131,19 @@ def main():
                             assert math.isfinite(y) and struct.pack('<f', x) == struct.pack('<f', y), (
                                 rate, tone, dynamic, block, channel, index, x, y)
                     snapshot = Tone.from_buffer(state)
+                    native_state = native.state.raw
                     for name, position in [('rate', 0xe28), ('requested', 0x250),
                                            ('smoothed', 0x7e8), ('applied', 0x7f8),
                                            ('max_step', 0x7f0), ('smoothing', 0x7ec),
                                            ('correction', 0xcb8), ('prior_correction', 0xcbc)]:
                         actual = struct.pack('<f', getattr(snapshot, name))
-                        assert actual == native.state.raw[position:position+4], (
+                        assert actual == native_state[position:position+4], (
                             'state', rate, tone, dynamic, block, name, getattr(snapshot, name),
                             struct.unpack_from('<f', native.state, position)[0])
                         counts['state_bytes'] += 4
-                    assert bytes(snapshot.coefficient) == native.state.raw[0xc9c:0xcb0], (
+                    assert bytes(snapshot.coefficient) == native_state[0xc9c:0xcb0], (
                         'coefficients', rate, tone, dynamic, block)
-                    assert bytes(snapshot.history) == native.state.raw[0xc7c:0xc9c], (
+                    assert bytes(snapshot.history) == native_state[0xc7c:0xc9c], (
                         'history', rate, tone, dynamic, block)
                     assert snapshot.snap == bool(native.state[0x7f4][0])
                     assert snapshot.filtering == bool(native.state[0xcc0][0])

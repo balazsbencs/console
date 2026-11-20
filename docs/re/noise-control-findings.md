@@ -124,9 +124,9 @@ branch pauses Tone as well. The original plugin also snaps on gaps in its
 internal timestamps. Its complete graph scheduling remains pending.
 
 The Linux x86_64 comparison runs the original numerical prepare, update and
-filter slices on synthetic buffers. C matches 5,308,416 output values bit for
-bit on both GCC and Clang across nine rates, dynamic controls, neutral
-bypass, resets and irregular buffer partitions. The CLAP host test also checks
+filter slices on synthetic buffers. GCC and Clang each match 5,308,416 output
+values and 3,566,592 state bytes bit for bit across nine rates, dynamic
+controls, neutral bypass, resets and irregular buffer partitions. The CLAP host test checks
 Tone automation during sample playback and neutral defaults for older states.
 
 | Observation | Original address or retained REA evidence |
