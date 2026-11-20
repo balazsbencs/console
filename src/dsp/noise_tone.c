@@ -1,4 +1,5 @@
 #include "noise_tone.h"
+#include "noise_biquad.h"
 #include "noise_tone_coeff.h"
 
 #include <math.h>
@@ -56,20 +57,6 @@ static void begin_batch(rs_noise_tone *tone) {
     tone->remaining = TONE_BATCH;
 }
 
-static float filter_sample(const float c[5], float history[4], float input) {
-    float sum = c[0] * input + c[1] * history[0];
-    sum += c[2] * history[1];
-    sum -= c[3] * history[2];
-    sum -= c[4] * history[3];
-    volatile float biased = sum + .0001f;
-    float output = biased + -.0001f;
-    history[1] = history[0];
-    history[0] = input;
-    history[3] = history[2];
-    history[2] = output;
-    return output;
-}
-
 void rs_noise_tone_process(rs_noise_tone *tone, float *left, float *right, size_t frames) {
     if (!tone || !tone->rate || !left || !right)
         return;
@@ -80,8 +67,8 @@ void rs_noise_tone_process(rs_noise_tone *tone, float *left, float *right, size_
         if (tone->filtering) {
             for (size_t i = 0; i < count; ++i) {
                 float correction = (float)(tone->remaining - i - 1) * tone->correction_step + tone->correction;
-                left[i] = filter_sample(tone->coefficient, tone->history[0], left[i]) * correction;
-                right[i] = filter_sample(tone->coefficient, tone->history[1], right[i]) * correction;
+                left[i] = rs_noise_biquad_sample(tone->coefficient, tone->history[0], left[i]) * correction;
+                right[i] = rs_noise_biquad_sample(tone->coefficient, tone->history[1], right[i]) * correction;
             }
         }
         tone->remaining -= (unsigned)count;

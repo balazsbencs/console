@@ -3,8 +3,8 @@
 Read-only resource audit of RC-20 1.0.5, reference image SHA-256
 `f7a947340465e22cf5af81a0402d59e5cbff7e517e60d5554e5f2a5861df810a`.
 Sources below are relative to `analysis/unpacked/guispec/`. These are static
-resource findings; no full plugin, original scripts or constructor was run.
-The native playback and compressor numerical kernels require separate recovery.
+resource findings. The Tone and Follow sections combine them with isolated
+numerical probes from the native binary.
 
 ## Controls and defaults
 
@@ -38,10 +38,8 @@ Enable into both blocks. It does not derive compressor Enable from Duck.
 Automation exposes Amount, Enable, Type, Tone_Unscaled, Follow, Routing, Duck
 and Flux (:102,110–117). GUI.lua:35–43 binds these smaller controls directly.
 
-These are normalized resource values. In particular compressor Ratio=.5 is
-not evidence for a physical ratio of .5:1, and Attack0/Release.2 do not establish
-seconds. Noise_Follow is not a recovered envelope coefficient formula. Physical
-metadata conversion and these DSP meanings must come from the native kernels.
+These are normalized resource values. The native compressor and Follow
+implementations supply the corresponding physical values and coefficients.
 
 ## Amount, Magnitude and Flux graph
 
@@ -134,6 +132,52 @@ Tone automation during sample playback and neutral defaults for older states.
 | Noise prepare and Tone setup | `0x3a43a0`, `ev_e3a0492eed054fd46c89a95cbc462ca15b3ccfb26320a16722bd0822226e7b7b` |
 | Tone update and stereo filter loop | `0x3a54e9`, `0x3a61ea`, `ev_ebdacc03dc92b21d7d5dc7e6823195e58b77d5fd23affdf5550c632172e71a34` |
 | Type-7 biquad setup and gain change | `0x1a4ff0`, `0x1a5590` |
+
+## Follow DSP
+
+The original stereo detector takes the arithmetic mean of left and right
+from the dry input, passes it through the type-2 high-pass biquad, and
+rectifies it. The linked gain applies to the texture after Tone and before
+level and Duck. Hard-panned signals contribute half their amplitude to the
+detector and antiphase signals cancel at its input.
+
+The constructor supplies the settled private parameters. The retained Lua
+resources set the public Follow default to zero.
+
+| Private setting | Settled value |
+| --- | --- |
+| Threshold | 0.5 |
+| Gain compensation | 3.000000238418579 |
+| Attack | 0.009999999776482582 s |
+| Decay 0 | 2.9970028400421143 s |
+| Decay 1 | 0.015235929749906063 s |
+| Decay curve | 0.94f |
+| Detector high-pass | 79.99999237060547 Hz, Q=0.707f |
+
+Follow latches once per 64 active texture frames. The detector threshold
+and maximum use the square and fourth power of `min(2 * Follow, 1)`
+respectively. Release time interpolates between the two decay values
+using the 0.94 rational curve. Two recursive envelope stages preserve the
+original falling-target factor of 1.4. The output gain clamps to zero and
+the computed maximum.
+
+At exactly zero with transport playing, the original bypasses the detector,
+seeds both envelope stages to 1.0001000166 and retains the high-pass history.
+The C adapter writes unity gains for this branch. With transport stopped,
+the zero setting still runs the detector, using the original one-second
+release constant. The CLAP maps absent transport data to free-running
+playback. A zero envelope silences the texture while its cursor advances.
+Host reset, activation and changes of texture source restart the envelope.
+
+The retained REA process evidence at `0x3a4b80`
+(`ev_ebdacc03dc92b21d7d5dc7e6823195e58b77d5fd23affdf5550c632172e71a34`)
+covers the control, prefilter and envelope at `0x3a5775..0x3a5ff3`.
+The isolated native comparison uses synthetic model caches over nine rates
+and verifies 2,359,296 gain values and 1,869,588 state bytes per compiler.
+Host tests also cover automation, in-place mixing, v3 state migration,
+and the transition from stopped to playing within a host block. This
+validates the stereo Follow stage at settled private defaults. The original
+full graph's input-activity and timestamp scheduling remain pending.
 
 ## Sample selection
 

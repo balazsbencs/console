@@ -243,13 +243,14 @@ python3 tools/compare_native_space_macro.py --library build-release/libretro_dsp
 
 ## Noise Ducking
 
-Retro Study Noise Ducking 0.3.0 offers two Texture Source settings.
+Retro Study Noise Ducking 0.4.0 offers two Texture Source settings.
 
 - **Samples** plays the selected local NXAC texture, ducks it with the main
   stereo input, then mixes it into that input. Choose a Noise Type and use
   Amount to set the texture level. Tone shapes the texture before ducking.
   Its normalized midpoint of 0.5 is neutral. Lower values darken the texture,
-  and higher values brighten it. White is the default type. Install the
+  and higher values brighten it. Follow uses the dry input envelope to shape
+  the texture. White is the default type. Install the
   local files before activation as described below.
 - **External** puts the main stereo input through the linked compressor and
   uses its stereo Sidechain input as the key. Route a texture track to Main In
@@ -276,18 +277,24 @@ input through and pauses processing. In Samples mode, Enable off or Amount
 zero pauses the texture branch. A newly selected texture starts at frame
 zero. The plug-in uses stereo float32 buffers and adds zero latency.
 
-State format `RSND` v3 saves controls 6000–6012. New instances and v1 sessions
-start in External. Older states load Tone at 0.5. Samples is a standalone
-dry-plus-texture branch. Follow, Flux and routing around the other effects
-remain pending. See
+At Follow=0, texture plays freely while transport is playing. With stopped
+transport it follows input activity, so it can decay into silence on an idle
+track. Free-running hosts that supply no transport information use the
+playing behavior. Follow affects the texture only and runs before Duck.
+
+State format `RSND` v4 saves controls 6000–6013. New instances and v1 sessions
+start in External. Older states load Follow at 0, and v1/v2 states load Tone
+at 0.5. Flux and routing around the other effects remain pending. See
 [compressor findings](re/noise-comp-findings.md),
 [Noise controls and routing](re/noise-control-findings.md) and
 [NXAC format and playback](re/noise-nxac-findings.md) and
-[Tone implementation](re/noise-control-findings.md#tone-dsp).
+[Tone implementation](re/noise-control-findings.md#tone-dsp) and
+[Follow implementation](re/noise-control-findings.md#follow-dsp).
 
 ```sh
 python3 tools/compare_native_noise_comp.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_noise_interp.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_nxac.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_noise_tone.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_noise_follow.py --library build-release/libretro_dsp.so
 ```
