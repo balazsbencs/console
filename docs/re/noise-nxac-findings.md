@@ -1,10 +1,10 @@
 # Noise sample containers: NXAC v1.1
 
-Scope: the sixteen supplied Noise assets under
-`analysis/unpacked/sound/samples.xpak`, the hash-pinned RC-20 1.0.5 x86_64 binary,
-and packaged Noise declarations. This pass reads metadata and native assembly.
-It does not redistribute or export decoded samples, execute resource scripts,
-or claim a working portable NXAC decoder.
+This port uses the sixteen supplied Noise assets in
+`analysis/unpacked/sound/samples.xpak` and the hash-pinned RC-20 1.0.5
+x86_64 Mach-O. The source tree and CI contain only code and synthetic tests.
+The comparison operates on the local assets in memory and records counts,
+digests and error statistics.
 
 `tools/inspect_noise_nxac.py` independently validates every local container and
 writes metadata/hashes to `analysis/re/noise-nxac-inventory.json`. All sixteen
@@ -102,51 +102,77 @@ match `32*(channel0_block_bytes+channel1_block_bytes)` exactly.
 RenderBlocks reads the active components' two-byte gain/delta indices first
 (0x1517c3–0x1517fa). It fetches gain from gGainConstants and multiplies it by
 kMaxResiduals[format], then fetches delta from gDeltaConstants. It passes the
-remaining payload, format IDs, gains/deltas and output pointers to the decoder
-at 0x151819. kMaxResiduals is 0 followed by `(1/16,1/64,1/256)` repeated three
-times. The specialized decoder consumes packed nibble/six-bit/byte values;
-its format-pair jump tables cover IDs 0..9. Different groups of formats
-require reconstruction arithmetic in addition to bit unpacking. In one
-inspected branch the second reconstructed component is added into the first
-output, suggesting component/stereo decorrelation; the complete transform and
-predictor interpretation are not yet established and must not be guessed.
+remaining payload, format IDs, gains, deltas and output pointers to the decoder
+at 0x151819. kMaxResiduals is 0 followed by `(1/16, 1/64, 1/256)` repeated
+three times.
 
-## Feasibility and practical loading path
+## PCM reconstruction
 
-A portable decoder appears feasible: headers and bounded block addressing are
-regular, residual packing is directly visible, and decoder tables/functions
-are present in the supplied native implementation. The inner inspected path
-operates on residual integers and floats; no decryption step was observed in
-that bounded path. This does not establish that every format branch or related
-container feature is covered. The large native body specializes combinations
-of component formats, so a much smaller generic implementation may be possible
-once the reconstruction equations are understood.
+Each 64-frame block starts with two index bytes for each active component,
+mid first. The payload interleaves mid and side groups of four residual codes.
+The 4-, 6- and 8-bit codes are unsigned and packed most significant first.
+Subtract 7.5, 31.5 or 127.5 respectively, then multiply by the indexed gain
+and format scale.
 
-Required next evidence is constructor-derived gain/delta initialization plus
-one representative decode path per format family and stereo combination. Then
-compare a portable scalar decoder against the isolated original for all
-clusters, preserving native float operation order and padding trims. No
-portable decode or native full-sample render was run in this pass. Parent REA
-queries for constructor/RenderBlocks/decompressor are separate pending evidence;
-this note makes no claim based on results not yet delivered.
+The gain initializer calculates `1 / float(exp2((index - 30) / 10.0))`,
+with double precision in the exponential and float division. Delta index
+zero starts at zero. Other indices use
+`float(sign * exp2(abs(index - 128) / 7.9375) * 2^-16)`, where the sign is
+negative for indices below 128. The exponential and multiplication are double
+precision. Both tables match all 512 floats from the isolated native initializer.
 
-The immediate independent path is **user-provided WAV audio**: load and validate
-PCM/float data off the audio thread, retain original sample rate and frame
-count, convert to owned stereo float buffers, and provide those buffers to the
-Noise playback/resampling API. Keep file I/O, allocation and decoding outside
-process(). Preserve asset identity in state and explicitly handle missing
-files. Mono duplication and any resampling/gain normalization should be
-explicit adapter choices. User-owned WAV input makes the Noise DSP and CLAP
-reviewable without waiting for NXAC decoding; it cannot by itself establish
-sample-for-sample equivalence with the bundled RC-20 Noise sounds.
+| Format | Reconstruction in one component |
+| --- | --- |
+| 0 | Zero component, no index bytes or residuals |
+| 1–3 | Add the residual to the indexed delta |
+| 4–6 | Accumulate the residual into position, starting at the indexed delta |
+| 7–9 | Accumulate the residual into velocity, then velocity into position. Velocity starts at zero and position at the indexed delta |
 
-Reproduce container inspection only:
+Predictors reset every 64 frames. The stereo transform computes left as
+mid plus side and right as mid minus side. The C implementation retains the
+original float operation order and builds with contraction disabled.
+
+| REA evidence | ID |
+| --- | --- |
+| Constructor and table initialization | `ev_3747c0f7415534f262d22b2f5cd7d6dae40a3bbd72582b84d1caf7bee4071066` |
+| RenderBlocks | `ev_53f7cfd6b242e45bc494da0d83569ed7b8c5a54fd936f05a973b7e65393bf8e4` |
+| DecompressStereoBlockA | `ev_812b8924c15947b14a6438e1b3d1d05b3bb42adceaeebaca6e4dbeeae0b006b9` |
+
+## C loading and playback
+
+Call `rs_nxac_open` on immutable encoded bytes. It validates the stereo v1.1
+header, table, format IDs and payload spans. `rs_nxac_decode_cluster` writes a
+full 2048-frame cluster to caller-owned planar buffers. Use `rs_nxac_decode_pcm`
+to decode the exact logical frame count and trim the final cluster padding.
+Do file I/O and decoding outside the audio callback.
+
+Pass the decoded buffers, length and rates to `rs_noise_player_prepare`.
+`rs_noise_player_process` generates stereo PCM with phase continuous across
+calls, direct copies for equal rates and the recovered cubic interpolation
+for fractional stepping. Playback starts at frame zero and wraps all
+interpolation taps across the end of the clip. The whole-clip wrap is a study
+choice. Original stack scheduling and type change behavior still need native
+validation. The standalone Noise Ducking CLAP continues to accept texture and
+sidechain tracks from the host. The sample player is available through the shared
+C library.
+
+## Validation
+
+The Linux x86_64 probe runs the native numerical table initializer and
+RenderBlocks over synthetic object state. It supplies the validated compressed
+payload from the local files and compares planar PCM in memory. All 5,407
+clusters and 22,147,072 float values, including cluster padding, match
+bit for bit. The whole-file PCM API independently matches the 22,106,624
+logical values. A further 400 synthetic clusters exercise all 100 format pairs,
+including absent components, and match 1,638,400 float values bit for bit.
+
+The CI test uses synthetic PCM and compressed bytes. It covers header and
+offset rejection, padding trim, predictor reset, integer and fractional
+playback wraps and host buffer partitioning. The native comparison covers
+the isolated decoder. It leaves host startup, the original stack cursor and
+the complete Noise graph unverified.
 
 ```sh
 python3 tools/inspect_noise_nxac.py
+python3 tools/compare_native_nxac.py --library build-release/libretro_dsp.so
 ```
-
-The report contains metadata and digests, not audio payloads. This inspection
-is intentionally bounded to the sixteen supplied v1.1 Noise containers; other
-NXAC versions, mono encodings, corrupt files and streaming concurrency remain
-unassessed.

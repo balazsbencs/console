@@ -254,13 +254,15 @@ sidechain is treated as silence. Enable controls the compressor and Bypass
 passes the texture through while pausing the compressor state. The adapter
 starts with Enable on. State format `RSND` v1 saves controls 6000–6008.
 
-The shared C library also includes the recovered cubic PCM interpolation
-primitive. NXAC decoding, texture selection and playback in the complete
-Noise path are pending. See [compressor findings](re/noise-comp-findings.md),
+The shared C library can decode local stereo NXAC v1.1 files and play the
+decoded PCM as a loop using the recovered cubic interpolation. Texture
+selection and integration into the CLAP Noise signal path remain pending.
+See [compressor findings](re/noise-comp-findings.md),
 [Noise controls and routing](re/noise-control-findings.md) and
 [NXAC format findings](re/noise-nxac-findings.md).
 
 ```sh
 python3 tools/compare_native_noise_comp.py --library build-release/libretro_dsp.so
 python3 tools/compare_native_noise_interp.py --library build-release/libretro_dsp.so
+python3 tools/compare_native_nxac.py --library build-release/libretro_dsp.so
 ```

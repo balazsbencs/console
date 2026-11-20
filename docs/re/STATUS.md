@@ -118,7 +118,7 @@ routing, with a sidechain-driven compressor in each noise container.
 
 | User-facing effect | Actual block(s) | Implementation status |
 | --- | --- | --- |
-| Noise | cNoiseFX + cSimpleComp, pre/post routing | Sidechain compressor and cubic interpolation native-tested. Texture playback and graph integration pending |
+| Noise | cNoiseFX + cSimpleComp, pre/post routing | Sidechain compressor, NXAC decoder and cubic interpolation native-tested. C loop player available. Original stack and CLAP graph integration pending |
 | Wobble | cWobbler | Stereo kernel and seeded macro/Flux graph native-tested; original model timing pending |
 | Distortion | cPlugChain + cGain blend | Six character DSP chains with settled Flux; original graph timing pending |
 | Digital | cBitColor | Focus/Cut, curves, LFO, dynamic updates/reset and seeded Flux implemented; full model pending |
@@ -188,8 +188,8 @@ root-construction region. Full-plugin execution has not been observed.
    seed indices and full dependency order. Match boot/reset sequencing.
 2. Capture original macro-driven Digital renders to validate graph notification
    timing and enable/filter-mode transitions beyond settled kernel fixtures.
-3. Recover NXAC prediction and stereo reconstruction, then port Noise texture
-   playback and integrate the pre/post paths. Match complete original
+3. Integrate the decoded textures into the Noise CLAP, recover original
+   stack scheduling and wire the pre/post paths. Match complete original
    Distortion graph transition timing.
 4. Integrate the global graph and original control mappings into a separate
    complete-effect CLAP, then validate full-chain reference renders in a host.
@@ -217,9 +217,14 @@ preloaded mono/stereo branch of `cResamplingAudioSupplier::ReadNextStereo`
 at `0x39f1b0` on each compiler. REA Evidence
 `ev_01018d0594bc0c572e8dda2265d8f4f7f9bc7496059b1bb125039d9abe52e6f0`
 and the raw disassembly are retained under `analysis/re/`.
-The comparison covers fractional stepping over synthetic PCM. Source refill,
-looping and the exact-rate copy path remain pending.
+The comparison covers fractional stepping over synthetic PCM. Original source
+refill, loop scheduling and exact-rate dispatch remain unverified.
 
 The Noise REA session was saved to `analysis/re/noise.rea` and
 `analysis/re/noise-evidence.json`. See [Noise routing and mappings](noise-control-findings.md)
 and [NXAC findings](noise-nxac-findings.md) for the 16 texture sources.
+
+The NXAC decoder matches all 5,407 original texture clusters across
+22,147,072 float values, including padding. The C player can loop the decoded
+PCM at the host rate. It uses whole-clip wrap until the original stack
+scheduling is recovered. [Decoder and playback details](noise-nxac-findings.md)
